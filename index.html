@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arcane Build</title>
+  <style>
+    :root {
+      --bg: #060611;
+      --bg2: #0a0a17;
+      --panel: #0d0d1e;
+      --panel-2: #101028;
+      --line: #1d1d33;
+      --line-2: #292948;
+      --text: #efe7d4;
+      --muted: #8d8da7;
+      --gold: #d4a017;
+      --danger: #f87171;
+      --success: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at top, #111128 0%, var(--bg) 45%, #04040b 100%);
+      color: var(--text);
+    }
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(6,6,17,.92);
+      backdrop-filter: blur(10px);
+    }
+    .brand { font-weight: 800; letter-spacing: .08em; color: var(--gold); }
+    .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+    .seg button, .btn {
+      background: transparent; color: var(--muted); border: 0; cursor: pointer;
+      padding: 7px 12px; font-size: 12px;
+    }
+    .seg button.active { background: var(--gold); color: #000; font-weight: 700; }
+    .btn { border: 1px solid var(--line-2); border-radius: 8px; }
+    .btn.success { color: var(--success); background: #081808; }
+    .btn.danger { color: var(--danger); background: #180808; }
+    .btn.gold { color: var(--gold); background: #1d1604; }
+    .spacer { flex: 1 1 auto; }
+    .budget-wrap, .xpbox { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    input[type="number"] {
+      width: 72px; padding: 6px 8px; background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: 8px;
+    }
+    .layout {
+      display: grid; grid-template-columns: 380px minmax(420px, 1fr) 360px;
+      gap: 16px; padding: 16px; max-width: 1800px; margin: 0 auto;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(14,14,34,.95), rgba(9,9,22,.95));
+      border: 1px solid var(--line); border-radius: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.28);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 16px; border-bottom: 1px solid var(--line);
+      font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 700;
+    }
+    .panel-body { padding: 14px 16px; }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center;
+      justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box;
+    }
+    .modal-box {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto;
+    }
+    .gh-label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+    .gh-input {
+      width: 100%; box-sizing: border-box; padding: 8px 10px; background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: 8px; font-size: 13px;
+    }
+    .gh-status { font-size: 12px; min-height: 16px; margin-top: 10px; color: var(--muted); }
+    .gh-status.ok { color: var(--success); }
+    .gh-status.err { color: var(--danger); }
+    .gh-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+    .gh-item { text-align: left; width: 100%; font-size: 13px; color: var(--text); background: var(--panel-2); }
+    .gh-item:hover { border-color: var(--gold); }
+    .svg-wrap { padding: 8px; }
+    svg { width: 100%; height: auto; display: block; }
+    .hint { color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .title { font-size: 26px; font-weight: 800; margin: 0 0 4px; }
+    .subtitle { color: var(--muted); font-size: 13px; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .req {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px;
+      border-radius: 999px; border: 1px solid var(--line-2); font-size: 12px;
+    }
+    .warn { color: #fbbf24; margin-top: 12px; font-size: 13px; }
+    .level-row { display: flex; align-items: center; gap: 12px; margin: 18px 0; }
+    .lvbtn {
+      width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line-2);
+      background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 21px; font-weight: 700;
+    }
+    .lvbtn:disabled { opacity: .35; cursor: not-allowed; }
+    .level-box { min-width: 82px; text-align: center; font-size: 18px; font-weight: 800; }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 16px; }
+    .stat {
+      background: rgba(255,255,255,.02); border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+    }
+    .stat .v { font-size: 22px; font-weight: 800; }
+    .stat .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .acq-item {
+      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+      padding: 9px 13px; background: transparent; border: 0; color: var(--text); cursor: pointer;
+      border-bottom: 1px solid #0f0f20;
+    }
+    .acq-item:hover { background: rgba(255,255,255,.02); }
+    .badge { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 4px 8px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--line); }
+    .legend .badge { border: 1px solid transparent; }
+    .collapsible-header { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); }
+    .collapsible-header:first-child { border-top: 0; }
+    .collapsible-header:hover { color: var(--text); }
+    .chevron { font-size: 10px; transition: transform .15s ease; }
+    .proj-type-btn { border-radius: 8px; }
+    .proj-node-text { pointer-events: none; }
+    @media (max-width: 1250px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">✦ ARCANE BUILD</div>
+    <div class="seg">
+      <button id="modePlanning" class="active">⚡ Planification</button>
+      <button id="modeBudget">🎯 Budget</button>
+    </div>
+    <div id="budgetWrap" class="budget-wrap" style="display:none;">
+      <span>Budget XP :</span>
+      <input id="budgetInput" type="number" min="0" value="50" />
+      <span id="budgetLeft"></span>
+    </div>
+    <div class="spacer"></div>
+    <div class="xpbox">XP : <strong id="xpSpent">0</strong> <span id="xpModeHint">(illimité)</span></div>
+    <div class="xpbox">HP : <strong id="hpTotal">0</strong></div>
+    <button id="saveBtn" class="btn gold">💾 Sauver</button>
+    <button id="loadBtn" class="btn success">📂 Charger</button>
+    <button id="ghSaveBtn" class="btn gold" title="Enregistrer dans le dépôt GitHub">☁️ Sauver GitHub</button>
+    <button id="ghLoadBtn" class="btn success" title="Charger depuis le dépôt GitHub">☁️ Charger GitHub</button>
+    <button id="ghCfgBtn" class="btn" title="Configuration GitHub">⚙️</button>
+    <button id="resetBtn" class="btn danger">🗑 Reset</button>
+    <input id="fileInput" type="file" accept="application/json" hidden />
+  </div>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="panel-header">DÉTAILS</div>
+      <div class="panel-body" id="detailPanel"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">CERCLES ARCANIQUES</div>
+      <div class="svg-wrap"><svg id="arcaneSvg" viewBox="0 0 980 980" aria-label="Carte des magies"></svg></div>
+      <div class="panel-header" style="border-top:1px solid var(--line);">HISTORIQUE</div>
+      <div class="panel-body" style="display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+        <div style="flex:1 1 75%; min-width:260px;">
+          <table id="improvementsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+          <button id="addImprovementBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter une amélioration</button>
+        </div>
+        <div style="flex:1 1 20%; min-width:150px;">
+          <table id="statsTotalsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header collapsible-header" id="magicsHeader">
+        <span>MAGIES ACQUISES</span><span class="chevron" id="magicsChevron">▾</span>
+      </div>
+      <div id="magicsBody">
+        <div class="panel-body" id="acquiredMeta"></div>
+        <div id="acquiredList"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="panel-header collapsible-header" id="projectsHeader">
+        <span>PROJETS</span><span class="chevron" id="projectsChevron">▾</span>
+      </div>
+      <div id="projectsBody">
+        <div class="panel-body" id="projectsMeta"></div>
+        <div id="projectsList"></div>
+      </div>
+    </section>
+  </div>
+
+<script>
+// ─── Magic data faithfully matching the arcane wheel image ───
+// Angles are measured clockwise from top (North = 0°)
+// Prereqs read from the image for each magic.
+const RAW_CIRCLES = [
+  { circle: 1, magics: [
+    { id: "magic", name: "Magie", prereqs: [] },
+  ]},
+  { circle: 2, magics: [
+    // image: Elemental (top), Focus (right), Arcane (bottom), Balance (left)
+    { id: "elemental", name: "Elemental", prereqs: ["magic"] },
+    { id: "focus",     name: "Focus",     prereqs: ["magic"] },
+    { id: "arcane",    name: "Arcane",    prereqs: ["magic"] },
+    { id: "balance",   name: "Balance",   prereqs: ["magic"] },
+  ]},
+  { circle: 3, magics: [
+    { id: "fire",          name: "Fire",          prereqs: ["elemental"] },
+    { id: "water",         name: "Water",         prereqs: ["elemental"] },
+    { id: "sky",           name: "Sky",           prereqs: ["elemental"] },
+    { id: "earth",         name: "Earth",         prereqs: ["elemental"] },
+    { id: "alchemy",       name: "Alchemy",       prereqs: ["focus"] },
+    { id: "enchantment",   name: "Enchantment",   prereqs: ["focus"] },
+    { id: "metamorphosis", name: "Metamorphosis", prereqs: ["arcane"] },
+    { id: "ancestral",     name: "Ancestral",     prereqs: ["arcane"] },
+    { id: "pact",          name: "Pact",          prereqs: ["arcane"] },
+    { id: "mana",          name: "Mana",          prereqs: ["arcane"] },
+    { id: "darkness",      name: "Darkness",      prereqs: ["balance"] },
+    { id: "illusions",     name: "Illusions",     prereqs: ["balance"] },
+    { id: "light",         name: "Light",         prereqs: ["balance"] },
+  ]},
+  { circle: 4, magics: [
+    { id: "mist",       name: "Mist",       prereqs: ["fire", "water"] },
+    { id: "ice",        name: "Ice",        prereqs: ["water"] },
+    { id: "air",        name: "Air",        prereqs: ["sky"] },
+    { id: "astrology",  name: "Astrology",  prereqs: ["focus", "sky"] },
+    { id: "lightning",  name: "Lightning",  prereqs: ["sky"] },
+    { id: "seismic",    name: "Seismic",    prereqs: ["earth", "fire"] },
+    { id: "nature",     name: "Nature",     prereqs: ["earth"] },
+    { id: "mycology",   name: "Mycology",   prereqs: ["pact"] },
+    { id: "morphism",   name: "Morphism",   prereqs: ["metamorphosis", "focus"] },
+    { id: "shamanism",  name: "Shamanism",  prereqs: ["ancestral"] },
+    { id: "runes",      name: "Runes",      prereqs: ["ancestral"] },
+    { id: "voodoo",     name: "Voodoo",     prereqs: ["ancestral"] },
+    { id: "negamagic",  name: "Negamagic",  prereqs: ["mana"] },
+    { id: "lithomancy", name: "Lithomancy", prereqs: ["illusions", "earth"] },
+    { id: "psionism",   name: "Psionism",   prereqs: ["mana"] },
+  ]},
+  { circle: 5, magics: [
+    { id: "gravity",       name: "Gravity",      prereqs: ["earth", "air"] },
+    { id: "entropy",       name: "Entropy",      prereqs: ["earth", "water", "fire", "sky"] },
+    { id: "cartomancy",    name: "Cartomancie",  prereqs: ["astrology", "enchantment"] },
+    { id: "metal",         name: "Metal",        prereqs: ["earth", "lightning"] },
+    { id: "transmutation", name: "Transmut.",    prereqs: ["alchemy"] },
+    { id: "pain",          name: "Pain",         prereqs: ["morphism"] },
+    { id: "blood",         name: "Blood",        prereqs: ["morphism", "water"] },
+    { id: "demonology",    name: "Demonology",   prereqs: ["pact"] },
+    { id: "seraph",        name: "Seraph",       prereqs: ["pact", "light"] },
+    { id: "void",          name: "Void",         prereqs: ["air", "negamagic"] },
+    { id: "necromancy",    name: "Necromancy",   prereqs: ["voodoo", "darkness"] },
+    { id: "madness",       name: "Madness",      prereqs: ["psionism", "illusions"] },
+    { id: "abysse",        name: "Abysse",       prereqs: ["darkness", "pact"] },
+    { id: "life",          name: "Life",         prereqs: ["light", "nature"] },
+    { id: "domination",    name: "Domination",   prereqs: ["nature"] },
+    { id: "beast_magic",   name: "Beast Magic",  prereqs: ["nature"] },
+    { id: "hivemind",      name: "Hivemind",     prereqs: ["nature"] },
+  ]},
+  { circle: 6, magics: [
+    { id: "spiritualism", name: "Spiritualism", prereqs: ["necromancy", "life"] },
+    { id: "space_time",   name: "Space-Time",   prereqs: ["focus", "arcane", "elemental", "balance"] },
+    { id: "imagination",  name: "Imagination",  prereqs: ["madness", "transmutation"] },
+    { id: "fae",          name: "Fae",          prereqs: ["life", "illusions", "pact"] },
+  ]},
+];
+
+// ─── Project tree (mutation / familier / artefact) ───
+// Structure faithfully reproduces the provided diagram (START → 3 → 3 → 3 → 3 → U),
+// with branching that is sometimes 2-way and sometimes 3-way, exactly as drawn.
+const PROJECT_TREE = {
+  start:  { label: 'START',  row: 0, col: 0,  next: ['c1', 'b1', 'e1'] },
+  c1:     { label: 'C',      row: 1, col: -1, next: ['b2l'] },
+  b1:     { label: 'B',      row: 1, col: 0,  next: ['b2l', 'e2', 'b2r'] },
+  e1:     { label: 'E',      row: 1, col: 1,  next: ['b2r'] },
+  b2l:    { label: 'B',      row: 2, col: -1, next: ['c3l', 'f3'] },
+  e2:     { label: 'E',      row: 2, col: 0,  next: ['c3l', 'c3r'] },
+  b2r:    { label: 'B',      row: 2, col: 1,  next: ['f3', 'c3r'] },
+  c3l:    { label: 'C',      row: 3, col: -1, next: ['bc4', 'core4'] },
+  f3:     { label: 'F',      row: 3, col: 0,  next: ['core4'] },
+  c3r:    { label: 'C',      row: 3, col: 1,  next: ['core4', 'be4'] },
+  bc4:    { label: 'BC',     row: 4, col: -1, next: ['u'] },
+  core4:  { label: 'C ou E', row: 4, col: 0,  next: ['u'] },
+  be4:    { label: 'BE',     row: 4, col: 1,  next: ['u'] },
+  u:      { label: 'U',      row: 5, col: 0,  next: [] },
+};
+const PROJECT_TYPES = {
+  mutation: { label: 'Mutation', icon: '', color: '#22c55e' },
+  familier: { label: 'Familier', icon: '', color: '#0ea5e9' },
+  artefact: { label: 'Artefact', icon: '', color: '#d4a017' },
+};
+let newProjectDraft = { name: '', type: 'mutation', magicId: '', description: '', familierStats: [] };
+let showNewProjectModal = false;
+const FAMILIER_STATS = ['Brutality', 'Sturdiness', 'Swiftness', 'Cunning', 'Empathy', 'Rhetoric', 'Curiosity'];
+// ─── Sortie de schéma (hors-arbre, avec accord MJ) ───
+let showExitSchemaConfirm = null; // projectId ou null
+let showNewOffSchemaModal = null; // projectId ou null
+let newOffSchemaItemDraft = { letter: '', description: '' };
+const OFF_SCHEMA_LETTERS = [['B', 'Bonus'], ['C', 'Customization'], ['E', 'Extension'], ['F', 'Formfitting']];
+let showDeleteProjectConfirm = null; // projectId ou null
+// ─── Améliorations (bonus libres associés à 2 stats) ───
+let newImprovementDraft = { description: '', stats: [] };
+let showNewImprovementModal = false;
+const IMPROVEMENT_BONUS = 5; // valeur ajoutée à chaque stat choisie par amélioration
+
+const ALL_MAGICS = {};
+RAW_CIRCLES.forEach(({ circle, magics }) => magics.forEach((m) => ALL_MAGICS[m.id] = { ...m, circle }));
+
+// Angles in degrees clockwise from North (top=0°), evenly spaced per ring, order preserved from image.
+const MAGIC_DEG = {
+  // C1
+  magic: 0,
+  // C2 — 4 cardinal positions
+  elemental:  0,
+  focus:      90,
+  arcane:     180,
+  balance:    270,
+  // C3 — 13 magics evenly spaced (360/13 ≈ 27.7°), starting fire at 346°
+  fire:           346,
+  water:           14,
+  sky:             41,
+  alchemy:         69,
+  enchantment:     97,
+  metamorphosis:  124,
+  ancestral:      152,
+  pact:           180,
+  mana:           208,
+  darkness:       235,
+  illusions:      263,
+  light:          291,
+  earth:          318,
+  // C4 — 15 magics, placed near their C3 prereqs to minimise line crossings
+  mist:           357,  // near fire(346) + water(14)
+  ice:             14,  // equidistant mist(357) et air(30) — écart ~16° de chaque côté
+  air:             30,  // near sky(41) — remonté de 20° (espace air-ice réduit de 2/3)
+  astrology:       50,  // near sky(41) + focus(90) — remonté de 20°
+  lightning:       70,  // near sky(41) — remonté de 20°
+  morphism:       109,  // near metamorphosis(124), shifted to halve gap with lightning(90)
+  shamanism:      136,  // near ancestral(152)
+  runes:          153,  // near ancestral(152)
+  voodoo:         171,  // near ancestral(152)
+  mycology:       188,  // near pact(180)
+  negamagic:      211,  // near mana(208) + darkness(235)
+  psionism:       236,  // near mana(208) + illusions(263)
+  lithomancy:     278,  // near illusions(263) + earth(318)
+  nature:         315,  // near earth(318)
+  seismic:        336,  // equidistant mist(357) et nature(315) — écart 21° de chaque côté
+  // C5 — 14 magics, placed near their C4/C3 prereqs to minimise line crossings
+  gravity:        358,  // near air(50) + seismic(340) — wraps over top
+  entropy:         22,  // near fire(346)/water(14)/sky(41)/earth(318) cluster
+  cartomancy:      55,  // C5 — entre entropy(22) et metal(72) à 2/3 depuis entropy
+  metal:           72,  // near lightning(90) + earth zone
+  transmutation:   90,  // near alchemy(C3=69)
+  pain:           106,  // near morphism(109)
+  blood:          122,  // near morphism(109) + water zone
+  demonology:     148,  // espace demonology-seraph = seraph-necromancy (18°)
+  seraph:         166,  // equidistant demonology(148) et necromancy(184) — 18° de chaque côté
+  abysse:         200,  // repositionné
+  void:           219,  // repositionné
+  necromancy:     184,  // near voodoo(171) + darkness(235)
+  madness:        242,  // repositionné
+  life:           287,  // espacement égal 17° avec domination
+  domination:     304,  // espacement égal 17° (life→dom→beast→hivemind)
+  beast_magic:    321,  // espacement égal 17° avec hivemind(338)
+  hivemind:       338,  // near nature(315)
+  // C6 — 3 magics evenly spaced (120°)
+  spiritualism:   0,
+  space_time:     120,
+  imagination:    240,
+  fae:            264,  // espace fae-imagination réduit de 60% (60°→24°)
+};
+delete MAGIC_DEG['ancestral_sh'];
+const SZ = 980, CX = 490, CY = 490;
+const RING_R = { 1: 0, 2: 72, 3: 158, 4: 245, 5: 332, 6: 415 };
+const SEP_R = [36, 115, 202, 288, 374, 450];
+const TH = {
+  1: { c: "#d4a017", t: "#ffe88a", bg: "#1e1600", lbl: "Cercle I" },
+  2: { c: "#e2c97e", t: "#fff5d0", bg: "#1c1a0c", lbl: "Cercle II" },
+  3: { c: "#a855f7", t: "#d8b4fe", bg: "#140020", lbl: "Cercle III" },
+  4: { c: "#0ea5e9", t: "#7dd3fc", bg: "#001828", lbl: "Cercle IV" },
+  5: { c: "#22c55e", t: "#86efac", bg: "#001e08", lbl: "Cercle V" },
+  6: { c: "#ef4444", t: "#fca5a5", bg: "#200000", lbl: "Cercle VI" },
+};
+function degToPos(deg, r) {
+  if (r === 0) return { x: CX, y: CY };
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+}
+const POSITIONS = {};
+RAW_CIRCLES.forEach(({ circle, magics }) => {
+  const r = RING_R[circle];
+  magics.forEach((m) => POSITIONS[m.id] = degToPos(MAGIC_DEG[m.id] ?? 0, r));
+});
+// ── state ──────────────────────────────────────────────────────
+// acquired: { id: level }  — XP-bought magics
+// lpBought: { id: true }   — magics bought at level 1 with LP (level upgrades still in acquired)
+// specializations: { id: [spec1, spec2, spec3] } — free-text specializations unlocked at levels 4, 5, 6
+// projects: [{ id, name, type, path: [nodeId,...] }] — mutation/familier/artefact projects (see PROJECT_TREE)
+const state = { mode: 'planning', budget: 50, acquired: {}, lpBought: {}, specializations: {}, projects: [], improvements: [], selected: null, selectedProject: null };
+const ns = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs={}, html='') => { const n = document.createElement(tag); Object.entries(attrs).forEach(([k,v]) => n.setAttribute(k,v)); if (html) n.innerHTML = html; return n; };
+const svgEl = (tag, attrs={}) => { const n = document.createElementNS(ns, tag); Object.entries(attrs).forEach(([k,v]) => n.setAttribute(k,v)); return n; };
+const getBonus = (lv) => Math.max(0, lv - 1) * 5;
+// C6 gives 4 LP/level; other circles: level × (circle-1)
+const getLPBonus = (lv, c) => c === 6 ? lv * 4 : (c > 2 ? lv * (c - 1) : 0);
+const xpForLevel = (lv, c) => lv * c;
+// XP cost for a LP-bought magic: level 1 is free (paid in LP), levels 2-6 cost XP normally
+const xpForLpMagic = (lv, c) => lv <= 1 ? 0 : (lv - 1) * c;
+const isMagicLpBought = (id) => !!state.lpBought[id];
+// Total LP generated from all acquired magics (LP-bought magics also generate LP based on their level)
+const totalLP = () => Object.entries(state.acquired).reduce((s, [id, lv]) => {
+  return s + getLPBonus(lv, ALL_MAGICS[id].circle);
+}, 0);
+// LP spent on LP-bought magics (6 LP each) + LP spent on project circles (6 LP each, first row free per project)
+const projectPaidSteps = (p) => Math.max(0, p.path.length - 2);
+const offSchemaLpCost = (p) => (p.offSchemaItems ? p.offSchemaItems.length * 6 : 0);
+const projectLpCost = (p) => 6 + projectPaidSteps(p) * 6 + offSchemaLpCost(p); // 6 LP to create the project + 6 LP per circle after the first + 6 LP per ajout hors-schéma
+const lpSpentOnProjects = () => state.projects.reduce((s, p) => s + projectLpCost(p), 0);
+const lpSpent = () => Object.keys(state.lpBought).length * 6 + lpSpentOnProjects();
+const lpAvailable = () => totalLP() - lpSpent();
+// Highest circle owned via XP (not LP-bought)
+const maxXpCircle = () => Object.entries(state.acquired).reduce((mx, [id, lv]) => {
+  if (isMagicLpBought(id) || lv < 1) return mx;
+  return Math.max(mx, ALL_MAGICS[id].circle);
+}, 0);
+// Can a magic be LP-bought? Need 6 LP available and target circle <= maxXpCircle
+const canLpBuy = (id) => {
+  if (isMagicLpBought(id)) return false;
+  if ((state.acquired[id] || 0) > 0) return false; // already owned via XP
+  const targetCircle = ALL_MAGICS[id].circle;
+  if (targetCircle < 1 || targetCircle > maxXpCircle()) return false;
+  return lpAvailable() >= 6;
+};
+const totalXP = (acq) => Object.entries(acq).reduce((s, [id, lv]) => {
+  if (isMagicLpBought(id)) return s + xpForLpMagic(lv, ALL_MAGICS[id].circle);
+  return s + xpForLevel(lv, ALL_MAGICS[id].circle);
+}, 0);
+const prereqsMet = (id, acq) => ALL_MAGICS[id].prereqs.every((p) => (acq[p] || 0) >= 1);
+const missingPre = (id, acq) => ALL_MAGICS[id].prereqs.filter((p) => (acq[p] || 0) < 1);
+const xpSpent = () => totalXP(state.acquired);
+const xpLeft = () => state.mode === 'budget' ? state.budget - xpSpent() : null;
+function setMode(mode) { state.mode = mode; render(); }
+function selectMagic(id) { state.selected = state.selected === id ? null : id; state.selectedProject = null; render(); }
+function changeLevel(id, delta) {
+  const cur = state.acquired[id] || 0;
+  const circ = ALL_MAGICS[id].circle;
+  const nxt = Math.max(0, Math.min(6, cur + delta));
+  const isLp = isMagicLpBought(id);
+  // For non-LP magics, check prereqs before acquiring
+  if (delta > 0 && !isLp && !prereqsMet(id, state.acquired)) return;
+  // LP-bought: can't go below level 1 via this function (use lpSellMagic instead)
+  if (isLp && nxt < 1) { lpSellMagic(id); return; }
+  // XP cost: LP-bought level 1 costs 0 XP, levels 2+ cost (level-1)*circle XP
+  if (delta > 0 && state.mode === 'budget') {
+    const curXp = isLp ? xpForLpMagic(cur, circ) : xpForLevel(cur, circ);
+    const nxtXp = isLp ? xpForLpMagic(nxt, circ) : xpForLevel(nxt, circ);
+    if (xpSpent() + (nxtXp - curXp) > state.budget) return;
+  }
+  if (nxt === 0) { delete state.acquired[id]; delete state.lpBought[id]; delete state.specializations[id]; }
+  else state.acquired[id] = nxt;
+  render();
+}
+function lpBuyMagic(id) {
+  if (!canLpBuy(id)) return;
+  state.lpBought[id] = true;
+  state.acquired[id] = 1;
+  render();
+}
+function lpSellMagic(id) {
+  if (!isMagicLpBought(id)) return;
+  delete state.lpBought[id];
+  delete state.acquired[id];
+  delete state.specializations[id];
+  render();
+}
+// Specialization unlocked at level 4 (index 0), 5 (index 1), 6 (index 2)
+function setSpecialization(id, idx, value) {
+  if (!state.specializations[id]) state.specializations[id] = ['', '', ''];
+  state.specializations[id][idx] = value;
+}
+// ── projects (mutation / familier / artefact) ──────────────────
+function ownedMagicsList() {
+  return Object.keys(state.acquired).filter((id) => (state.acquired[id] || 0) >= 1);
+}
+function createProject(name, type, magicId, description, familierStats) {
+  if (!magicId || (state.acquired[magicId] || 0) < 1) return; // must be attached to an owned magic
+  if (lpAvailable() < 6) return; // creating a project costs 6 LP
+  if (type === 'familier' && (!familierStats || familierStats.length !== 3)) return; // must choose exactly 3 stats
+  const id = 'proj_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  state.projects.push({ id, name: name || 'Projet sans nom', type, magicId, description: description || '', path: ['start'], nodeData: {}, altForm: null, familierStats: type === 'familier' ? familierStats.slice() : undefined, offSchema: false, offSchemaMax: 0, offSchemaItems: [] });
+  state.selectedProject = id;
+  state.selected = null;
+  render();
+}
+function selectProject(id) {
+  state.selectedProject = state.selectedProject === id ? null : id;
+  if (state.selectedProject) state.selected = null;
+  render();
+}
+function deleteProject(id) {
+  state.projects = state.projects.filter((p) => p.id !== id);
+  if (state.selectedProject === id) state.selectedProject = null;
+  render();
+}
+function requestDeleteProject(id) { showDeleteProjectConfirm = id; render(); }
+function cancelDeleteProject() { showDeleteProjectConfirm = null; render(); }
+function confirmDeleteProject(id) { showDeleteProjectConfirm = null; deleteProject(id); }
+// ── améliorations ──────────────────────────────────────────────
+function createImprovement(description, stats) {
+  const desc = (description || '').trim();
+  if (!desc || !stats || stats.length !== 2) return;
+  const id = 'impr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  state.improvements.push({ id, description: desc, stats: stats.slice() });
+  render();
+}
+function deleteImprovement(id) {
+  state.improvements = state.improvements.filter((i) => i.id !== id);
+  render();
+}
+function statTotal(statName) {
+  return state.improvements.reduce((s, i) => s + (i.stats.includes(statName) ? IMPROVEMENT_BONUS : 0), 0);
+}
+// HP total = nombre de lignes dans la table historique (une ligne par amélioration)
+const hpTotal = () => state.improvements.length;
+// Le circle utilisé pour le plafond des stats : XP 1–10 → cercle 1, 11–20 → cercle 2, etc.
+const statCapCircle = () => Math.max(1, Math.ceil(xpSpent() / 10));
+const statCap = () => (statCapCircle() + 1) * 5;
+const clampedStatTotal = (statName) => Math.min(statTotal(statName), statCap());
+function renameProject(id, name) {
+  const p = state.projects.find((pr) => pr.id === id);
+  if (p) p.name = name || 'Projet sans nom';
+}
+// Advance a project along the tree: nodeId must be one of the current node's `next` options.
+// The very first circle chosen (row 1, right after 'start') is free; every circle after costs 6 LP.
+function chooseProjectStep(projectId, nodeId) {
+  const p = state.projects.find((pr) => pr.id === projectId);
+  if (!p) return;
+  const current = p.path[p.path.length - 1];
+  if (!PROJECT_TREE[current].next.includes(nodeId)) return;
+  const isFree = p.path.length === 1;
+  if (!isFree && lpAvailable() < 6) return;
+  p.path.push(nodeId);
+  render();
+}
+// Undo the last circle acquired on a project (refunds its LP cost automatically since it's no longer counted).
+function undoProjectStep(projectId) {
+  const p = state.projects.find((pr) => pr.id === projectId);
+  if (!p || p.path.length <= 1) return;
+  p.path.pop();
+  render();
+}
+// ── sortie de schéma (hors-arbre) ───────────────────────────────
+function requestExitSchema(projectId) { showExitSchemaConfirm = projectId; render(); }
+function cancelExitSchema() { showExitSchemaConfirm = null; render(); }
+function confirmExitSchema(projectId) {
+  const p = state.projects.find((pr) => pr.id === projectId);
+  if (!p || p.offSchema) { showExitSchemaConfirm = null; render(); return; }
+  const remaining = Math.max(0, 5 - (p.path.length - 1));
+  p.offSchema = true;
+  p.offSchemaMax = remaining;
+  p.offSchemaItems = p.offSchemaItems || [];
+  showExitSchemaConfirm = null;
+  render();
+}
+function addOffSchemaItem(projectId, letter, description) {
+  const p = state.projects.find((pr) => pr.id === projectId);
+  if (!p || !p.offSchema) return;
+  const desc = (description || '').trim();
+  if (!letter || !desc) return;
+  if ((p.offSchemaItems || []).length >= p.offSchemaMax) return;
+  if (lpAvailable() < 6) return;
+  const id = 'osi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  p.offSchemaItems.push({ id, letter, description: desc, data: {} });
+  render();
+}
+function removeOffSchemaItem(projectId, itemId) {
+  const p = state.projects.find((pr) => pr.id === projectId);
+  if (!p) return;
+  p.offSchemaItems = (p.offSchemaItems || []).filter((i) => i.id !== itemId);
+  render();
+}
+// ── project node data (B/E/C/F/U content) ──────────────────────
+const STAT_LIST = ['Force', 'Agilité', 'Endurance', 'Volonté', 'Intelligence', 'Perception'];
+function nodeLetters(p, nodeId) {
+  const label = PROJECT_TREE[nodeId].label;
+  if (nodeId === 'u') {
+    const choice = p.nodeData && p.nodeData.u && p.nodeData.u.choice;
+    if (choice === 'E') return ['E', 'B', 'B'];
+    if (choice === 'C') return ['C', 'B', 'B'];
+    if (choice === 'F') return ['F', 'B'];
+    return [];
+  }
+  if (label === 'C ou E') {
+    const choice = p.nodeData && p.nodeData[nodeId] && p.nodeData[nodeId].choice;
+    return choice ? [choice] : [];
+  }
+  return label.split('').filter((c) => 'BECF'.includes(c));
+}
+function ensureNodeData(p, nodeId, key) {
+  if (!p.nodeData) p.nodeData = {};
+  if (!p.nodeData[nodeId]) p.nodeData[nodeId] = {};
+  if (!p.nodeData[nodeId][key]) p.nodeData[nodeId][key] = {};
+  return p.nodeData[nodeId][key];
+}
+function setNodeChoice(p, nodeId, choice) {
+  if (!p.nodeData) p.nodeData = {};
+  if (!p.nodeData[nodeId]) p.nodeData[nodeId] = {};
+  p.nodeData[nodeId].choice = choice;
+  render();
+}
+function resetNodeChoice(p, nodeId) {
+  if (p.nodeData && p.nodeData[nodeId]) p.nodeData[nodeId].choice = null;
+  render();
+}
+// counts of B / E / C letters acquired so far along the path (used for Formfitting's mirrored alt-form)
+function typeCounts(p) {
+  const counts = { B: 0, E: 0, C: 0, F: 0 };
+  p.path.forEach((nodeId) => { if (nodeId !== 'start') nodeLetters(p, nodeId).forEach((l) => counts[l]++); });
+  return counts;
+}
+function ensureAltForm(p) {
+  const counts = typeCounts(p);
+  if (!p.altForm) p.altForm = { description: '', extensions: [], customizations: [] };
+  if (p.altForm.description === undefined) p.altForm.description = '';
+  while (p.altForm.extensions.length < counts.E) p.altForm.extensions.push({ func: '' });
+  while (p.altForm.customizations.length < counts.C) p.altForm.customizations.push({ category: '', effectText: '', condition: '', value: 10 });
+  return p.altForm;
+}
+function renderTopbar() {
+  document.getElementById('modePlanning').classList.toggle('active', state.mode === 'planning');
+  document.getElementById('modeBudget').classList.toggle('active', state.mode === 'budget');
+  document.getElementById('budgetWrap').style.display = state.mode === 'budget' ? 'flex' : 'none';
+  document.getElementById('budgetInput').value = state.budget;
+  const lp = lpAvailable(), lpTot = totalLP();
+  document.getElementById('xpSpent').textContent = `${xpSpent()} XP · ${lpSpent()}/${lpTot} LP`;
+  document.getElementById('hpTotal').textContent = `${hpTotal()}`;
+  document.getElementById('xpModeHint').textContent = state.mode === 'planning' ? `(${lp} LP dispo)` : '';
+  document.getElementById('budgetLeft').textContent = state.mode === 'budget' ? `(${xpLeft() >= 0 ? '+' : ''}${xpLeft()} XP restant · ${lp} LP dispo)` : '';
+}
+function renderDetail() {
+  const wrap = document.getElementById('detailPanel');
+  wrap.innerHTML = '';
+  if (state.selectedProject) { renderProjectDetail(wrap); return; }
+  if (!state.selected) {
+    wrap.appendChild(el('div', { class: 'hint' }, 'Cliquez sur une magie pour voir ses détails.'));
+    return;
+  }
+  const m = ALL_MAGICS[state.selected], th = TH[m.circle], lv = state.acquired[m.id] || 0;
+  const isLp = isMagicLpBought(m.id);
+  const canGet = prereqsMet(m.id, state.acquired), miss = missingPre(m.id, state.acquired);
+  const nextXpCost = isLp ? (lv < 6 ? m.circle : 0) : m.circle;
+  const canUp = lv < 6 && (isLp ? lv >= 1 : canGet) && (state.mode !== 'budget' || xpLeft() >= nextXpCost);
+  wrap.appendChild(el('div', { class: 'title', style: `color:${th.t}` }, m.name + (isLp ? ' 🔗' : '')));
+  wrap.appendChild(el('div', { class: 'subtitle' }, `${th.lbl} · ${isLp && lv <= 1 ? '6 LP (niv.1) puis ' : ''}${m.circle} XP/niv.`));
+  if (m.prereqs.length) {
+    wrap.appendChild(el('div', { style: 'margin-top:18px;font-size:12px;color:#8d8da7;font-weight:700;letter-spacing:.08em;' }, 'PRÉREQUIS'));
+    const list = el('div', { class: 'pill-list' });
+    m.prereqs.forEach((pid) => {
+      const pm = ALL_MAGICS[pid], has = (state.acquired[pid] || 0) >= 1;
+      list.appendChild(el('div', { class: 'req', style: `border-color:${TH[pm.circle].c}55;color:${has ? '#d1fae5' : '#fecaca'};background:${has ? '#072012' : '#24090c'}` }, `${has ? '✓' : '✗'} ${pm.name} · C${pm.circle}`));
+    });
+    wrap.appendChild(list);
+  }
+  if (!canGet && lv === 0 && !isLp) wrap.appendChild(el('div', { class: 'warn' }, `⚠ Acquérir d'abord : ${miss.map((p) => ALL_MAGICS[p].name).join(', ')}`));
+  // LP buy/sell section
+  const lpSect = el('div', { style: 'margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;' });
+  if (isLp) {
+    const sellBtn = el('button', { class: 'btn danger', style: 'font-size:12px;' }, '🔗 Retirer (récupère 6 LP)');
+    sellBtn.onclick = () => lpSellMagic(m.id);
+    lpSect.appendChild(sellBtn);
+    lpSect.appendChild(el('span', { style: 'font-size:12px;color:#8d8da7;' }, 'Acquis via Link Points'));
+  } else if (lv === 0 && m.circle > 0 && m.circle <= maxXpCircle()) {
+    const lpOk = lpAvailable() >= 6;
+    const buyBtn = el('button', { class: 'btn', style: `font-size:12px;${lpOk ? 'color:#c084fc;background:#1a0030;border-color:#7c3aed55;' : 'opacity:.4;'}` }, `🔗 Acheter pour 6 LP`);
+    buyBtn.disabled = !lpOk;
+    buyBtn.onclick = () => lpBuyMagic(m.id);
+    lpSect.appendChild(buyBtn);
+    lpSect.appendChild(el('span', { style: 'font-size:12px;color:#8d8da7;' }, `(${lpAvailable()} LP dispo · cercle max: C${maxXpCircle()})`));
+  }
+  if (lpSect.children.length) wrap.appendChild(lpSect);
+  const row = el('div', { class: 'level-row' });
+  const minus = el('button', { class: 'lvbtn' }, '−'); minus.disabled = lv === 0 || (isLp && lv <= 1); minus.onclick = () => changeLevel(m.id, -1);
+  const plus = el('button', { class: 'lvbtn', style: canUp ? 'border-color:#166534;color:#4ade80;background:#062b11' : '' }, '+'); plus.disabled = !canUp; plus.onclick = () => changeLevel(m.id, +1);
+  row.append(minus, el('div', { class: 'level-box' }, `${lv} / 6`), plus);
+  wrap.appendChild(row);
+  const xpUsed = isLp ? xpForLpMagic(lv, m.circle) : xpForLevel(lv, m.circle);
+  const lpGenerated = getLPBonus(lv, m.circle);
+  const stats = el('div', { class: 'stats' });
+  const cards = [
+    ['XP utilisé', isLp && lv <= 1 ? '0 (LP)' : String(xpUsed)],
+    ['Prochain coût', lv < 6 ? (isLp && lv === 0 ? '6 LP' : `${m.circle} XP`) : 'Max'],
+    ['Bonus', `+${getBonus(lv)}`],
+    ['LP générés', `+${lpGenerated}`],
+  ];
+  if (state.mode === 'budget') cards.push(['XP restant', String(xpLeft())]);
+  cards.push(['LP dispo total', `${lpAvailable()} / ${totalLP()}`]);
+  cards.forEach(([label, value]) => {
+    const c = el('div', { class: 'stat' });
+    c.appendChild(el('div', { class: 'v' }, value));
+    c.appendChild(el('div', { class: 'l' }, label));
+    stats.appendChild(c);
+  });
+  wrap.appendChild(stats);
+  if (lv >= 4) wrap.appendChild(renderSpecializationsBlock(m, lv));
+}
+function renderSpecializationsBlock(m, lv) {
+  const specWrap = el('div', { style: 'margin-top:18px;' });
+  specWrap.appendChild(el('div', { style: 'font-size:12px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:10px;' }, 'SPÉCIALISATIONS'));
+  const specs = state.specializations[m.id] || ['', '', ''];
+  const unlocked = Math.min(3, lv - 3); // lv4 -> 1, lv5 -> 2, lv6 -> 3
+  for (let i = 0; i < unlocked; i++) {
+    const row = el('div', { style: 'margin-bottom:10px;' });
+    row.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `Spécialisation ${i + 1} (niv. ${i + 4})`));
+    const input = el('input', {
+      type: 'text',
+      value: specs[i] || '',
+      placeholder: 'Entrez une spécialisation...',
+      style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;box-sizing:border-box;'
+    });
+    input.oninput = (e) => { setSpecialization(m.id, i, e.target.value); refreshMagicSpecList(m.id); };
+    row.appendChild(input);
+    specWrap.appendChild(row);
+  }
+  return specWrap;
+}
+function renderSpecializationsList(m, lv) {
+  const specs = (state.specializations[m.id] || ['', '', '']).slice(0, Math.min(3, lv - 3)).filter((s) => s && s.trim());
+  const wrap = el('div', { style: 'margin-top:2px;' });
+  wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:6px;' }, 'SPÉCIALISATIONS'));
+  if (!specs.length) wrap.appendChild(el('div', { class: 'hint' }, 'Aucune spécialisation renseignée.'));
+  else specs.forEach((s) => wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `• ${s}`)));
+  return wrap;
+}
+const INPUT = 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;box-sizing:border-box;';
+function renderCustomizationForm(store, onChange) {
+  const wrap = el('div', { style: 'margin-top:2px;' });
+  const catRow = el('div', { style: 'display:flex;gap:6px;margin-bottom:8px;' });
+  [['effect', 'Effet'], ['bonus', 'Bonus conditionnel']].forEach(([cat, label]) => {
+    const active = store.category === cat;
+    const b = el('button', { class: 'btn', style: `font-size:11px;${active ? 'background:#1a0030;color:#c084fc;border-color:#7c3aed;' : ''}` }, label);
+    b.onclick = () => { store.category = cat; render(); };
+    catRow.appendChild(b);
+  });
+  wrap.appendChild(catRow);
+  if (store.category === 'effect') {
+    const input = el('input', { type: 'text', value: store.effectText || '', placeholder: 'Saignement, régénération...', style: INPUT });
+    input.oninput = (e) => { store.effectText = e.target.value; if (onChange) onChange(); };
+    wrap.appendChild(input);
+  } else if (store.category === 'bonus') {
+    const row = el('div', { style: 'display:flex;gap:8px;' });
+    const condInput = el('input', { type: 'text', value: store.condition || '', placeholder: 'Condition (lumière du jour, attaque dans le dos...)', style: INPUT + 'flex:1 1 auto;' });
+    condInput.oninput = (e) => { store.condition = e.target.value; if (onChange) onChange(); };
+    const valInput = el('input', { type: 'number', value: (store.value ?? 10), style: 'width:70px;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;' });
+    if (store.value === undefined) store.value = 10;
+    valInput.oninput = (e) => { store.value = +e.target.value || 0; if (onChange) onChange(); };
+    row.append(condInput, valInput);
+    wrap.appendChild(row);
+  } else {
+    wrap.appendChild(el('div', { class: 'small' }, 'Choisir une catégorie ci-dessus.'));
+  }
+  return wrap;
+}
+function renderLetterForm(p, nodeId, key, letter) {
+  const store = ensureNodeData(p, nodeId, key);
+  if (letter === 'B' && p.type !== 'familier') return null; // automatic, nothing to configure
+  const titles = { B: 'Bonus', E: 'Extension', C: 'Customization', F: 'Formfitting' };
+  const suffix = key.length > letter.length ? ` ${key.slice(letter.length)}` : '';
+  const wrap = el('div', { style: 'padding:10px;border:1px solid var(--line-2);border-radius:10px;margin-bottom:10px;' });
+  wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, titles[letter].toUpperCase() + suffix));
+  appendLetterFormBody(wrap, p, store, letter);
+  return wrap;
+}
+function appendLetterFormBody(wrap, p, store, letter) {
+  if (letter === 'B') {
+    if (p.type === 'familier') {
+      const options = p.familierStats && p.familierStats.length ? p.familierStats : FAMILIER_STATS;
+      const row = el('div', { style: 'display:flex;gap:8px;' });
+      ['stat1', 'stat2'].forEach((key, i) => {
+        const otherKey = i === 0 ? 'stat2' : 'stat1';
+        const sel = el('select', { style: INPUT });
+        sel.appendChild(el('option', { value: '' }, `— Stat ${i + 1} (+5) —`));
+        options.forEach((s) => {
+          if (s === store[otherKey] && s !== store[key]) return; // exclude the stat already picked in the other dropdown
+          sel.appendChild(el('option', { value: s }, s));
+        });
+        sel.value = store[key] || '';
+        sel.onchange = (e) => { store[key] = e.target.value; refreshProjectSummary(p.id); render(); };
+        row.appendChild(sel);
+      });
+      wrap.appendChild(row);
+      wrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;' }, 'Choisir deux stats distinctes parmi les stats du familier, chacune augmentée de +5.'));
+    } else {
+      wrap.appendChild(el('div', { class: 'hint' }, 'Bonus automatique : +5 à la valeur de qualité du projet.'));
+    }
+  } else if (letter === 'E') {
+    if (p.type === 'familier') {
+      const sel = el('select', { style: INPUT });
+      sel.appendChild(el('option', { value: '' }, '— Choisir un Domaine Magique —'));
+      Object.values(ALL_MAGICS).forEach((m) => sel.appendChild(el('option', { value: m.id }, m.name)));
+      sel.value = store.domain || '';
+      sel.onchange = (e) => { store.domain = e.target.value; render(); };
+      wrap.appendChild(sel);
+      wrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;' }, "Le familier acquiert une connaissance instinctive de ce Domaine, ce qui modifie son arbre d'évolution."));
+    } else {
+      const inp = el('input', { type: 'text', value: store.func || '', placeholder: 'Fonction ajoutée au projet...', style: INPUT });
+      inp.oninput = (e) => { store.func = e.target.value; refreshProjectSummary(p.id); };
+      wrap.appendChild(inp);
+    }
+  } else if (letter === 'C') {
+    wrap.appendChild(renderCustomizationForm(store, () => refreshProjectSummary(p.id)));
+  } else if (letter === 'F') {
+    if (p.type === 'mutation') {
+      wrap.appendChild(el('div', { class: 'hint' }, "Débloque la forme complète : toutes les actions pertinentes utilisent le bonus de qualité comme modificateur, mais le mage ne peut accéder à ses autres Domaines durant ce temps. Utilisable une fois par jour."));
+    } else if (p.type === 'familier') {
+      const options = p.familierStats && p.familierStats.length ? p.familierStats : FAMILIER_STATS;
+      const row = el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;' });
+      ['stat1', 'stat2', 'stat3'].forEach((key, i) => {
+        const sel = el('select', { style: INPUT + 'flex:1 1 140px;' });
+        sel.appendChild(el('option', { value: '' }, `— Stat liée ${i + 1} —`));
+        options.forEach((s) => sel.appendChild(el('option', { value: s }, s)));
+        sel.value = store[key] || '';
+        sel.onchange = (e) => { store[key] = e.target.value; };
+        row.appendChild(sel);
+      });
+      wrap.appendChild(row);
+      wrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;' }, "Le familier peut être équipé comme arme ou pièce d'armure ; les jets utilisant ces 3 stats gagnent les stats du familier en bonus."));
+    } else {
+      wrap.appendChild(el('div', { class: 'hint' }, "Débloque une forme alternative, avec le même bonus de qualité et le même nombre d'extensions et de customizations que la forme d'origine (voir tableau ci-dessous)."));
+    }
+  }
+}
+function renderAltFormTable(p) {
+  const alt = ensureAltForm(p);
+  const wrap = el('div', { style: 'margin-top:14px;padding-top:14px;border-top:1px dashed var(--line-2);' });
+  wrap.appendChild(el('div', { style: 'font-size:12px;color:var(--gold);font-weight:700;letter-spacing:.08em;margin-bottom:4px;' }, 'FORME ALTERNATIVE (FORMFITTING)'));
+  wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:10px;' }, `Même bonus de qualité que la forme d'origine · ${alt.extensions.length} extension(s) · ${alt.customizations.length} customization(s)`));
+  const descRow = el('div', { style: 'margin-bottom:10px;' });
+  descRow.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, 'Description de la forme alternative'));
+  const descInput = el('textarea', { rows: 2, placeholder: 'Décrire la forme alternative...', style: INPUT + 'font-family:inherit;resize:vertical;' }, '');
+  descInput.value = alt.description || '';
+  descInput.oninput = (e) => { alt.description = e.target.value; refreshProjectSummary(p.id); };
+  descRow.appendChild(descInput);
+  wrap.appendChild(descRow);
+  alt.extensions.forEach((ext, i) => {
+    const row = el('div', { style: 'margin-bottom:8px;' });
+    row.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `Extension ${i + 1} (Forme 2)`));
+    const inp = el('input', { type: 'text', value: ext.func || '', placeholder: 'Fonction ajoutée (forme 2)...', style: INPUT });
+    inp.oninput = (e) => { ext.func = e.target.value; refreshProjectSummary(p.id); };
+    row.appendChild(inp);
+    wrap.appendChild(row);
+  });
+  alt.customizations.forEach((cust, i) => {
+    const row = el('div', { style: 'margin-bottom:8px;' });
+    row.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `Customization ${i + 1} (Forme 2)`));
+    row.appendChild(renderCustomizationForm(cust, () => refreshProjectSummary(p.id)));
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+function gatherProjectData(p) {
+  const bonuses = [], extensions = [], customizations = [];
+  let formfittingUnlocked = false;
+  p.path.forEach((nodeId) => {
+    if (nodeId === 'start') return;
+    const letters = nodeLetters(p, nodeId);
+    const counters = {};
+    letters.forEach((letter) => {
+      counters[letter] = (counters[letter] || 0) + 1;
+      const key = counters[letter] > 1 ? `${letter}${counters[letter]}` : letter;
+      const store = (p.nodeData[nodeId] && p.nodeData[nodeId][key]) || {};
+      if (letter === 'B') bonuses.push(store);
+      else if (letter === 'E') extensions.push(store);
+      else if (letter === 'C') customizations.push(store);
+      else if (letter === 'F') formfittingUnlocked = true;
+    });
+  });
+  (p.offSchemaItems || []).forEach((item) => {
+    const store = item.data || (item.data = {});
+    if (item.letter === 'B') bonuses.push(store);
+    else if (item.letter === 'E') extensions.push(store);
+    else if (item.letter === 'C') customizations.push(store);
+    else if (item.letter === 'F') formfittingUnlocked = true;
+  });
+  return { bonuses, extensions, customizations, formfittingUnlocked };
+}
+function renderOffSchemaItemForm(p, item) {
+  if (item.letter === 'B' && p.type !== 'familier') return null; // bonus automatique, rien à configurer
+  if (!item.data) item.data = {};
+  const titles = { B: 'Bonus', E: 'Extension', C: 'Customization', F: 'Formfitting' };
+  const wrap = el('div', { style: 'padding:10px;border:1px solid var(--line-2);border-radius:10px;margin-top:6px;' });
+  wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, titles[item.letter].toUpperCase() + ' (hors-schéma)'));
+  appendLetterFormBody(wrap, p, item.data, item.letter);
+  return wrap;
+}
+function renderProjectSummary(p) {
+  const type = PROJECT_TYPES[p.type];
+  const { bonuses, extensions, customizations, formfittingUnlocked } = gatherProjectData(p);
+  const wrap = el('div', {});
+  if (p.description) wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:10px;font-style:italic;' }, p.description));
+
+  if (p.type === 'familier') {
+    wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin:10px 0 6px;' }, 'BONUS'));
+    if (!bonuses.length) wrap.appendChild(el('div', { class: 'hint' }, 'Aucun bonus.'));
+    else {
+      const statTotals = {};
+      bonuses.forEach((b) => { [b.stat1, b.stat2].forEach((s) => { if (s) statTotals[s] = (statTotals[s] || 0) + 5; }); });
+      const list = el('div', { class: 'pill-list' });
+      Object.entries(statTotals).forEach(([stat, val]) => list.appendChild(el('div', { class: 'req' }, `${stat} +${val}`)));
+      if (!Object.keys(statTotals).length) list.appendChild(el('div', { class: 'small' }, '(stats non renseignées)'));
+      wrap.appendChild(list);
+    }
+  }
+
+  wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin:14px 0 6px;' }, 'EXTENSIONS'));
+  if (!extensions.length) wrap.appendChild(el('div', { class: 'hint' }, 'Aucune extension.'));
+  else extensions.forEach((e) => {
+    const txt = p.type === 'familier' ? (e.domain ? `Domaine : ${ALL_MAGICS[e.domain] ? ALL_MAGICS[e.domain].name : e.domain}` : '(domaine non choisi)') : (e.func || '(fonction non renseignée)');
+    wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `• ${txt}`));
+  });
+
+  wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin:14px 0 6px;' }, 'CUSTOMIZATIONS'));
+  if (!customizations.length) wrap.appendChild(el('div', { class: 'hint' }, 'Aucune customization.'));
+  else {
+    const effects = customizations.filter((c) => c.category === 'effect');
+    const conditionals = customizations.filter((c) => c.category === 'bonus');
+    const unset = customizations.filter((c) => c.category !== 'effect' && c.category !== 'bonus');
+    effects.forEach((c) => wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `• ${c.effectText || '(non renseigné)'}`)));
+    unset.forEach(() => wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, '• (catégorie non choisie)')));
+    if (conditionals.length) {
+      wrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;margin-bottom:4px;font-weight:700;' }, 'Conditionnel :'));
+      conditionals.forEach((c) => wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;margin-left:8px;' }, `* ${c.condition || '(condition non renseignée)'} : +${c.value ?? 10}`)));
+    }
+  }
+
+  if (formfittingUnlocked) {
+    wrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:var(--gold);' }, `✦ Formfitting débloqué${p.type === 'artefact' ? ' — voir la forme alternative ci-dessous.' : ''}`));
+    if (p.type === 'artefact' && p.altForm) {
+      const alt = p.altForm;
+      const altWrap = el('div', { style: 'margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-2);' });
+      altWrap.appendChild(el('div', { style: 'font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.08em;margin-bottom:6px;' }, 'FORME ALTERNATIVE'));
+      if (alt.description) altWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:6px;font-style:italic;' }, alt.description));
+      (alt.extensions || []).forEach((ext) => altWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `• ${ext.func || '(fonction non renseignée)'}`)));
+      const altEffects = (alt.customizations || []).filter((c) => c.category === 'effect');
+      const altConditionals = (alt.customizations || []).filter((c) => c.category === 'bonus');
+      altEffects.forEach((c) => altWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `• ${c.effectText || '(non renseigné)'}`)));
+      if (altConditionals.length) {
+        altWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;margin-bottom:4px;font-weight:700;' }, 'Conditionnel :'));
+        altConditionals.forEach((c) => altWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;margin-left:8px;' }, `* ${c.condition || '(condition non renseignée)'} : +${c.value ?? 10}`)));
+      }
+      wrap.appendChild(altWrap);
+    }
+  }
+
+  if (p.offSchema) {
+    wrap.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin:14px 0 6px;' }, 'HORS SCHÉMA'));
+    if (!(p.offSchemaItems || []).length) wrap.appendChild(el('div', { class: 'hint' }, 'Aucun ajout hors-schéma.'));
+    else (p.offSchemaItems || []).forEach((i) => wrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, `• [${i.letter}] ${i.description}`)));
+  }
+
+  const totalQuality = p.type !== 'familier' ? bonuses.length * 5 : null;
+  if (totalQuality !== null) {
+    wrap.appendChild(el('div', { style: 'margin-top:14px;font-weight:800;color:var(--gold);' }, `Bonus total (hors bonus conditionnels) : +${totalQuality}`));
+  }
+  return wrap;
+}
+function projectNodePos(nodeId) {
+  const n = PROJECT_TREE[nodeId];
+  return { x: 150 + n.col * 82, y: 42 + n.row * 96 };
+}
+function renderProjectTreeSvg(svg, p) {
+  svg.innerHTML = '';
+  const acquiredSet = new Set(p.path);
+  const currentId = p.path[p.path.length - 1];
+  const nextOpts = new Set(PROJECT_TREE[currentId].next);
+  // edges
+  Object.entries(PROJECT_TREE).forEach(([id, node]) => {
+    node.next.forEach((nid) => {
+      const p1 = projectNodePos(id), p2 = projectNodePos(nid);
+      const onPath = acquiredSet.has(id) && acquiredSet.has(nid);
+      svg.appendChild(svgEl('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, stroke: onPath ? '#d4a017' : '#292948', 'stroke-width': onPath ? 2.6 : 1.3, opacity: onPath ? .95 : .45 }));
+    });
+  });
+  // nodes
+  Object.entries(PROJECT_TREE).forEach(([id, node]) => {
+    const pos = projectNodePos(id);
+    const isAcquired = acquiredSet.has(id);
+    const isNext = nextOpts.has(id);
+    const isCurrent = id === currentId;
+    const r = (node.row === 0 || node.row === 5) ? 23 : 21;
+    const fill = isAcquired ? '#1e1600' : (isNext ? '#0d2410' : '#0b0b16');
+    const stroke = isAcquired ? '#d4a017' : (isNext ? '#4ade80' : '#3a3a55');
+    const g = svgEl('g', { style: isNext ? 'cursor:pointer' : '' });
+    if (isNext) g.addEventListener('click', () => chooseProjectStep(p.id, id));
+    g.appendChild(svgEl('circle', { cx: pos.x, cy: pos.y, r, fill, stroke, 'stroke-width': isCurrent ? 3 : 1.6 }));
+    const fs = node.label.length > 3 ? 8 : (node.label.length > 1 ? 9.5 : 12);
+    const t = svgEl('text', { x: pos.x, y: pos.y + .5, 'text-anchor': 'middle', 'dominant-baseline': 'middle', class: 'proj-node-text', fill: isAcquired ? '#ffe88a' : (isNext ? '#86efac' : '#8d8da7'), 'font-size': fs, 'font-weight': 800 });
+    t.textContent = node.label;
+    g.appendChild(t);
+    svg.appendChild(g);
+  });
+}
+function renderProjectDetail(wrap) {
+  const p = state.projects.find((pr) => pr.id === state.selectedProject);
+  if (!p) { wrap.appendChild(el('div', { class: 'hint' }, 'Projet introuvable.')); return; }
+  const type = PROJECT_TYPES[p.type];
+  wrap.appendChild(el('div', { class: 'title', style: `color:${type.color}` }, p.name));
+  wrap.appendChild(el('div', { class: 'subtitle' }, `${type.label} · ${projectLpCost(p)} LP dépensés · ${p.path.length - 1}/5 cercles`));
+
+  const magic = ALL_MAGICS[p.magicId];
+  const hasMagic = magic && (state.acquired[p.magicId] || 0) >= 1;
+  wrap.appendChild(el('div', {
+    class: 'req',
+    style: `margin-top:10px;border-color:${hasMagic ? TH[magic.circle].c + '55' : '#f8717155'};color:${hasMagic ? '#d1fae5' : '#fecaca'};background:${hasMagic ? '#072012' : '#24090c'};display:inline-flex;`
+  }, hasMagic ? `✦ Rattaché à : ${magic.name}` : '⚠ Magie liée introuvable / retirée'));
+
+  const renameWrap = el('div', { style: 'margin-top:14px;' });
+  renameWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, 'Nom du projet'));
+  const nameInput = el('input', { type: 'text', value: p.name, style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;' });
+  nameInput.oninput = (e) => renameProject(p.id, e.target.value);
+  nameInput.onblur = () => render();
+  renameWrap.appendChild(nameInput);
+  wrap.appendChild(renameWrap);
+
+  const descWrap = el('div', { style: 'margin-top:10px;' });
+  descWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, 'Description'));
+  const descInput = el('textarea', { rows: 2, placeholder: 'Description du projet...', style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;', }, '');
+  descInput.value = p.description || '';
+  descInput.oninput = (e) => { p.description = e.target.value; };
+  descInput.onblur = () => render();
+  descWrap.appendChild(descInput);
+  wrap.appendChild(descWrap);
+
+  if (!p.offSchema) {
+    const exitWrap = el('div', { style: 'margin-top:12px;' });
+    const exitBtn = el('button', { class: 'btn danger', style: 'font-size:12px;' }, '⇥ Sortir du schéma');
+    exitBtn.onclick = () => requestExitSchema(p.id);
+    exitWrap.appendChild(exitBtn);
+    wrap.appendChild(exitWrap);
+  }
+
+  if (p.offSchema) {
+    const usedCount = (p.offSchemaItems || []).length;
+    const offWrap = el('div', { style: 'margin-top:14px;' });
+    offWrap.appendChild(el('div', { style: 'font-size:12px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, `HORS SCHÉMA (accord MJ) · ${usedCount}/${p.offSchemaMax} ajouts`));
+    if (!usedCount) offWrap.appendChild(el('div', { class: 'hint', style: 'margin-bottom:10px;' }, 'Aucun ajout pour l\'instant.'));
+    (p.offSchemaItems || []).forEach((item) => {
+      const itemWrap = el('div', { style: 'padding:8px 0;border-bottom:1px solid #0f0f20;' });
+      const row = el('div', { style: 'display:flex;align-items:flex-start;gap:8px;' });
+      const badge = el('span', { class: 'badge', style: 'background:#0ea5e922;color:#0ea5e9;border:1px solid #0ea5e955;flex:0 0 auto;' }, item.letter);
+      row.appendChild(badge);
+      row.appendChild(el('div', { class: 'small', style: 'flex:1 1 auto;' }, item.description));
+      const delBtn = el('button', { class: 'btn danger', style: 'font-size:11px;padding:4px 7px;flex:0 0 auto;' }, '✕');
+      delBtn.onclick = () => removeOffSchemaItem(p.id, item.id);
+      row.appendChild(delBtn);
+      itemWrap.appendChild(row);
+      const form = renderOffSchemaItemForm(p, item);
+      if (form) itemWrap.appendChild(form);
+      offWrap.appendChild(itemWrap);
+    });
+    const canAdd = usedCount < p.offSchemaMax && lpAvailable() >= 6;
+    const addBtn = el('button', { class: 'btn success', style: `font-size:12px;width:100%;margin-top:10px;${canAdd ? '' : 'opacity:.4;'}` }, '+ Ajouter (6 LP)');
+    addBtn.disabled = !canAdd;
+    addBtn.onclick = () => { showNewOffSchemaModal = p.id; render(); };
+    offWrap.appendChild(addBtn);
+    if (usedCount >= p.offSchemaMax) offWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:#fbbf24;' }, 'Nombre maximum d\'ajouts atteint.'));
+    else if (lpAvailable() < 6) offWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:#fbbf24;' }, 'LP insuffisants (6 LP requis).'));
+    wrap.appendChild(offWrap);
+  } else {
+    const svgWrap = el('div', { class: 'svg-wrap', style: 'margin-top:14px;' });
+    const svg = svgEl('svg', { viewBox: '0 0 300 570', 'aria-label': 'Arbre du projet' });
+    svg.style.width = '100%'; svg.style.height = 'auto'; svg.style.display = 'block';
+    renderProjectTreeSvg(svg, p);
+    svgWrap.appendChild(svg);
+    wrap.appendChild(svgWrap);
+
+    wrap.appendChild(el('div', { class: 'small', style: 'margin-top:4px;' }, `Chemin : ${p.path.map((id) => PROJECT_TREE[id].label).join(' → ')}`));
+  }
+
+  // per-node B/E/C/F content
+  const contentWrap = el('div', { style: 'margin-top:16px;' });
+  let hasAnyContent = false;
+  p.path.forEach((nodeId) => {
+    if (nodeId === 'start') return;
+    const label = PROJECT_TREE[nodeId].label;
+    const isChoiceNode = label === 'C ou E' || nodeId === 'u';
+    const choice = p.nodeData && p.nodeData[nodeId] && p.nodeData[nodeId].choice;
+    if (isChoiceNode && !choice) {
+      hasAnyContent = true;
+      const box = el('div', { style: 'padding:10px;border:1px solid var(--line-2);border-radius:10px;margin-bottom:10px;' });
+      if (nodeId === 'u') {
+        box.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, 'ULTIMATE — CHOISIR UNE COMBINAISON'));
+        const row = el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;' });
+        [['E', 'Extension + 2 Bonus'], ['C', 'Customization + 2 Bonus'], ['F', 'Formfitting + 1 Bonus']].forEach(([c, label2]) => {
+          const b = el('button', { class: 'btn', style: 'font-size:12px;' }, label2);
+          b.onclick = () => setNodeChoice(p, nodeId, c);
+          row.appendChild(b);
+        });
+        box.appendChild(row);
+      } else {
+        box.appendChild(el('div', { style: 'font-size:11px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, 'CHOISIR : CUSTOMIZATION OU EXTENSION'));
+        const row = el('div', { style: 'display:flex;gap:8px;' });
+        ['C', 'E'].forEach((c) => {
+          const b = el('button', { class: 'btn', style: 'font-size:12px;' }, c === 'C' ? 'Customization' : 'Extension');
+          b.onclick = () => setNodeChoice(p, nodeId, c);
+          row.appendChild(b);
+        });
+        box.appendChild(row);
+      }
+      contentWrap.appendChild(box);
+      return;
+    }
+    const letters = nodeLetters(p, nodeId);
+    if (!letters.length) return;
+    hasAnyContent = true;
+    if (isChoiceNode) {
+      const changeBtn = el('button', { class: 'btn', style: 'font-size:11px;margin-bottom:6px;' }, '↺ Changer le choix');
+      changeBtn.onclick = () => resetNodeChoice(p, nodeId);
+      contentWrap.appendChild(changeBtn);
+    }
+    const counters = {};
+    letters.forEach((letter) => {
+      counters[letter] = (counters[letter] || 0) + 1;
+      const key = counters[letter] > 1 ? `${letter}${counters[letter]}` : letter;
+      const form = renderLetterForm(p, nodeId, key, letter);
+      if (form) contentWrap.appendChild(form);
+    });
+  });
+  if (typeCounts(p).F > 0 && p.type === 'artefact') { contentWrap.appendChild(renderAltFormTable(p)); hasAnyContent = true; }
+  if (hasAnyContent) {
+    wrap.appendChild(el('div', { style: 'margin-top:16px;font-size:12px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, 'ÉLÉMENTS DU PROJET'));
+    wrap.appendChild(contentWrap);
+  }
+
+  const current = p.path[p.path.length - 1];
+  const nextOpts = PROJECT_TREE[current].next;
+  const actionsWrap = el('div', { style: 'margin-top:14px;' });
+  if (p.offSchema) {
+    actionsWrap.appendChild(el('div', { class: 'hint' }, '✓ Projet hors-schéma (l\'arbre normal n\'est plus utilisé).'));
+  } else if (nextOpts.length > 0) {
+    const isFree = p.path.length === 1;
+    actionsWrap.appendChild(el('div', { style: 'font-size:12px;color:#8d8da7;font-weight:700;letter-spacing:.08em;margin-bottom:8px;' }, nextOpts.length > 1 ? 'CHOISIR LA SUITE (EMBRANCHEMENT)' : 'CONTINUER'));
+    const btnRow = el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;' });
+    nextOpts.forEach((nid) => {
+      const node = PROJECT_TREE[nid];
+      const canAfford = isFree || lpAvailable() >= 6;
+      const btn = el('button', { class: 'btn', style: `font-size:12px;${canAfford ? 'color:#4ade80;background:#062b11;border-color:#166534;' : 'opacity:.4;'}` }, `${node.label} · ${isFree ? 'Gratuit' : '6 LP'}`);
+      btn.disabled = !canAfford;
+      btn.onclick = () => chooseProjectStep(p.id, nid);
+      btnRow.appendChild(btn);
+    });
+    actionsWrap.appendChild(btnRow);
+  } else {
+    actionsWrap.appendChild(el('div', { class: 'hint' }, '✓ Projet terminé (U atteint).'));
+  }
+  wrap.appendChild(actionsWrap);
+
+  const ctrlRow = el('div', { style: 'margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;' });
+  if (p.path.length > 1 && !p.offSchema) {
+    const undoBtn = el('button', { class: 'btn danger', style: 'font-size:12px;' }, '↩ Annuler dernier cercle');
+    undoBtn.onclick = () => undoProjectStep(p.id);
+    ctrlRow.appendChild(undoBtn);
+  }
+  const delBtn = el('button', { class: 'btn danger', style: 'font-size:12px;' }, '🗑 Supprimer le projet');
+  delBtn.onclick = () => requestDeleteProject(p.id);
+  ctrlRow.appendChild(delBtn);
+  wrap.appendChild(ctrlRow);
+  renderExitSchemaConfirmModal();
+  renderNewOffSchemaModal();
+
+  const stats = el('div', { class: 'stats' });
+  [['LP dépensés', String(projectLpCost(p))], ['Cercles acquis', String(p.path.length - 1)], ['LP dispo total', `${lpAvailable()} / ${totalLP()}`]].forEach(([label, value]) => {
+    const c = el('div', { class: 'stat' });
+    c.appendChild(el('div', { class: 'v' }, value));
+    c.appendChild(el('div', { class: 'l' }, label));
+    stats.appendChild(c);
+  });
+  wrap.appendChild(stats);
+}
+function addText(g, x, y, txt, attrs={}) {
+  const t = svgEl('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', ...attrs });
+  t.textContent = txt; g.appendChild(t); return t;
+}
+function renderSvg() {
+  const svg = document.getElementById('arcaneSvg'); svg.innerHTML = '';
+  svg.appendChild(svgEl('rect', { x: 2, y: 2, width: SZ-4, height: SZ-4, rx: 24, fill: 'none', stroke: '#1d1d33', 'stroke-width': 2 }));
+  SEP_R.forEach((r, i) => svg.appendChild(svgEl('circle', { cx: CX, cy: CY, r, fill: 'none', stroke: TH[i+1].c, 'stroke-opacity': .35, 'stroke-width': 1.2 })));
+  const selId = state.selected;
+  const unlockedBySelected = selId ? Object.entries(ALL_MAGICS).filter(([id, m]) => m.prereqs.includes(selId)).map(([id]) => id) : [];
+  Object.entries(ALL_MAGICS).forEach(([id, m]) => {
+    m.prereqs.forEach((pid) => {
+      const p1 = POSITIONS[id], p2 = POSITIONS[pid];
+      const active = (state.acquired[id] || 0) > 0 && (state.acquired[pid] || 0) > 0;
+      svg.appendChild(svgEl('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, stroke: active ? TH[m.circle].c : '#1e1e2e', 'stroke-width': active ? 1.8 : .5, 'stroke-dasharray': active ? '' : '3,6', opacity: active ? .5 : .25 }));
+    });
+  });
+  if (selId && unlockedBySelected.length > 0) {
+    const p0 = POSITIONS[selId];
+    unlockedBySelected.forEach((uid) => {
+      const pu = POSITIONS[uid];
+      const th = TH[ALL_MAGICS[uid].circle];
+      svg.appendChild(svgEl('line', { x1: p0.x, y1: p0.y, x2: pu.x, y2: pu.y, stroke: th.c, 'stroke-width': 2, 'stroke-dasharray': '5,5', opacity: .28 }));
+    });
+  }
+  const ids = Object.keys(ALL_MAGICS).filter(id => id !== 'magic').concat('magic');
+  ids.forEach((id) => {
+    const m = ALL_MAGICS[id], pos = POSITIONS[id], th = TH[m.circle], lv = state.acquired[id] || 0, isSel = state.selected === id, canGet = prereqsMet(id, state.acquired);
+    const group = svgEl('g', { style: 'cursor:pointer' });
+    group.addEventListener('click', () => selectMagic(id));
+    if (m.circle === 1) {
+      if (isSel) group.appendChild(svgEl('circle', { cx: pos.x, cy: pos.y, r: 44, fill: 'none', stroke: '#fff', 'stroke-opacity': .2 }));
+      group.appendChild(svgEl('circle', { cx: pos.x, cy: pos.y, r: 34, fill: lv > 0 ? th.bg : '#090913', stroke: lv > 0 ? th.c : '#3a2d08', 'stroke-width': isSel ? 3 : 2 }));
+      addText(group, pos.x, pos.y - 2, 'MAGIC', { fill: lv > 0 ? th.t : '#9f8342', 'font-size': 12, 'font-weight': 800 });
+      if (lv > 0) { group.appendChild(svgEl('circle', { cx: pos.x + 28, cy: pos.y - 28, r: 12, fill: th.c })); addText(group, pos.x + 28, pos.y - 28, String(lv), { fill: '#000', 'font-size': 12, 'font-weight': 900 }); }
+    } else {
+      const fs = {2:10.5,3:9,4:8.5,5:8,6:10}[m.circle] || 9;
+      const maxPW = {2:90,3:80,4:76,5:72,6:88}[m.circle] || 76;
+      const pw = Math.min(m.name.length * fs * 0.63 + 16, maxPW);
+      const ph = fs + 10;
+      if (isSel) group.appendChild(svgEl('rect', { x: pos.x - pw/2 - 6, y: pos.y - ph/2 - 6, width: pw + 12, height: ph + 12, rx: (ph + 12)/2, fill: 'none', stroke: '#fff', 'stroke-opacity': .18 }));
+      group.appendChild(svgEl('rect', { x: pos.x - pw/2, y: pos.y - ph/2, width: pw, height: ph, rx: ph/2, fill: lv > 0 ? th.bg : '#0b0b16', stroke: lv > 0 ? th.c : (canGet ? '#44445f' : '#242438'), 'stroke-width': isSel ? 2.4 : 1.2 }));
+      addText(group, pos.x, pos.y + .5, m.name, { fill: lv > 0 ? th.t : (canGet ? '#ddd8cf' : '#66667f'), 'font-size': fs, 'font-weight': 700 });
+      if (lv > 0) {
+        group.appendChild(svgEl('circle', { cx: pos.x + pw/2 - 3, cy: pos.y - ph/2 + 1, r: 9, fill: th.c }));
+        addText(group, pos.x + pw/2 - 3, pos.y - ph/2 + 1, String(lv), { fill: '#000', 'font-size': 10, 'font-weight': 900 });
+      }
+    }
+    svg.appendChild(group);
+  });
+}
+function renderAcquired() {
+  const meta = document.getElementById('acquiredMeta');
+  const list = document.getElementById('acquiredList');
+  const legend = document.getElementById('legend');
+  const items = Object.entries(state.acquired).sort((a,b) => ALL_MAGICS[a[0]].circle - ALL_MAGICS[b[0]].circle || a[0].localeCompare(b[0]));
+  const lpTot = totalLP(), lpSp = lpSpent(), lpDispo = lpAvailable();
+  meta.innerHTML = `<div class="small">${items.length} magie${items.length !== 1 ? 's' : ''} · <strong style="color:#ffe88a">${xpSpent()} XP</strong> · <strong style="color:#c084fc">${lpSp}/${lpTot} LP</strong> <span style="color:#8d8da7">(${lpDispo} dispo)</span></div>`;
+  list.innerHTML = '';
+  if (!items.length) list.innerHTML = '<div class="panel-body hint">Aucune magie acquise... Sélectionnez une magie, puis augmentez son niveau.</div>';
+  items.forEach(([id, lv]) => {
+    const m = ALL_MAGICS[id], th = TH[m.circle], isLp = isMagicLpBought(id);
+    const btn = el('button', { class: 'acq-item', style: `border-left:3px solid ${state.selected === id ? th.c : 'transparent'};background:${state.selected === id ? th.bg : 'transparent'};` });
+    btn.onclick = () => { state.selected = id; state.selectedProject = null; render(); };
+    const lpTag = isLp ? ' <span style="color:#c084fc;font-size:10px;">🔗 LP</span>' : '';
+    const lpInfo = getLPBonus(lv, m.circle) > 0 ? ` · <span style="color:#c084fc">+${getLPBonus(lv, m.circle)} LP</span>` : '';
+    btn.innerHTML = `<span class="badge" style="background:${th.bg};color:${th.t};border:1px solid ${th.c}55;">C${m.circle}</span><div style="flex:1 1 auto;"><div style="font-weight:700;">${m.name}${lpTag}</div><div class="small">Niv. ${lv}${getBonus(lv) > 0 ? ` · Bonus +${getBonus(lv)}` : ''}${lpInfo}</div></div><span class="badge" style="background:${isLp ? '#3b0764' : th.c};color:${isLp ? '#c084fc' : '#000'};">${lv}</span>`;
+    list.appendChild(btn);
+    if (lv >= 4) {
+      const specHolder = el('div', { class: 'panel-body', id: `spec-list-${id}`, style: `padding-top:4px;border-bottom:1px solid #0f0f20;background:${th.bg};` });
+      specHolder.appendChild(renderSpecializationsList(m, lv));
+      list.appendChild(specHolder);
+    }
+  });
+  legend.innerHTML = '';
+  [1,2,3,4,5,6].forEach((c) => {
+    const lpPer = c === 6 ? '4 LP/niv' : c > 2 ? `${c-1} LP/niv` : '–';
+    legend.appendChild(el('span', { class: 'badge', style: `background:${TH[c].bg};color:${TH[c].t};border-color:${TH[c].c}55;` }, `C${c} · ${c} XP · ${lpPer}`));
+  });
+}
+function renderExitSchemaConfirmModal() {
+  let overlay = document.getElementById('exitSchemaModalOverlay');
+  if (overlay) overlay.remove();
+  if (!showExitSchemaConfirm) return;
+  const projectId = showExitSchemaConfirm;
+  overlay = el('div', { class: 'modal-overlay', id: 'exitSchemaModalOverlay' });
+  overlay.onclick = (e) => { if (e.target === overlay) cancelExitSchema(); };
+  const box = el('div', { class: 'modal-box' });
+  const header = el('div', { style: 'padding:14px 16px;border-bottom:1px solid var(--line);' });
+  header.appendChild(el('div', { style: 'font-weight:800;color:var(--danger);' }, '⇥ Sortir du schéma'));
+  box.appendChild(header);
+  const body = el('div', { class: 'panel-body' });
+  body.appendChild(el('div', { class: 'hint', style: 'margin-bottom:14px;' }, 'Sortir du schéma nécessite l\'accord du Maître du Jeu ainsi que des ressources spécifiques. Une fois validé, vous ne suivrez plus l\'arbre normal : vous choisirez librement le type (Bonus / Customization / Extension / Formfitting) de chaque ajout restant, chacun accompagné d\'une description. Le nombre total d\'ajouts restants sera le même que dans le schéma, et chaque ajout coûtera 6 LP.'));
+  const btnRow = el('div', { style: 'display:flex;gap:8px;' });
+  const cancelBtn = el('button', { class: 'btn', style: 'font-size:12px;flex:1 1 auto;' }, 'Annuler');
+  cancelBtn.onclick = () => cancelExitSchema();
+  const okBtn = el('button', { class: 'btn danger', style: 'font-size:12px;flex:1 1 auto;' }, 'Okay');
+  okBtn.onclick = () => confirmExitSchema(projectId);
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(okBtn);
+  body.appendChild(btnRow);
+  box.appendChild(body);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+function buildNewOffSchemaItemForm(projectId, onDone) {
+  const p = state.projects.find((pr) => pr.id === projectId);
+  const formWrap = el('div', { class: 'panel-body' });
+  formWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:6px;' }, 'Type d\'ajout'));
+  const row = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;' });
+  const letterButtons = {};
+  const refreshLetterButtons = () => {
+    OFF_SCHEMA_LETTERS.forEach(([code]) => {
+      const btn = letterButtons[code];
+      const active = newOffSchemaItemDraft.letter === code;
+      btn.style.background = active ? '#0ea5e933' : '';
+      btn.style.color = active ? '#0ea5e9' : '';
+      btn.style.borderColor = active ? '#0ea5e9' : '';
+    });
+  };
+  OFF_SCHEMA_LETTERS.forEach(([code, label]) => {
+    const b = el('button', { class: 'btn', style: 'font-size:12px;' }, label);
+    b.onclick = () => { newOffSchemaItemDraft.letter = code; refreshLetterButtons(); updateCreateBtnState(); };
+    letterButtons[code] = b;
+    row.appendChild(b);
+  });
+  formWrap.appendChild(row);
+  formWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, 'Description'));
+  const descInput = el('textarea', { rows: '3', placeholder: 'Décrire cet ajout…', style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;margin-bottom:10px;resize:vertical;' });
+  descInput.value = newOffSchemaItemDraft.description || '';
+  descInput.oninput = (e) => { newOffSchemaItemDraft.description = e.target.value; updateCreateBtnState(); };
+  formWrap.appendChild(descInput);
+  const usedCount = (p.offSchemaItems || []).length;
+  const createBtn = el('button', { class: 'btn success', style: 'font-size:12px;width:100%;' }, '+ Ajouter (6 LP)');
+  const updateCreateBtnState = () => {
+    const canCreate = !!newOffSchemaItemDraft.letter && !!(newOffSchemaItemDraft.description || '').trim() && lpAvailable() >= 6 && usedCount < p.offSchemaMax;
+    createBtn.disabled = !canCreate;
+    createBtn.style.opacity = canCreate ? '1' : '.4';
+  };
+  createBtn.onclick = () => {
+    const letter = newOffSchemaItemDraft.letter, desc = newOffSchemaItemDraft.description;
+    newOffSchemaItemDraft = { letter: '', description: '' };
+    addOffSchemaItem(projectId, letter, desc);
+    if (onDone) onDone();
+  };
+  formWrap.appendChild(createBtn);
+  refreshLetterButtons();
+  updateCreateBtnState();
+  if (usedCount >= p.offSchemaMax) formWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:#fbbf24;' }, 'Nombre maximum d\'ajouts atteint.'));
+  else if (lpAvailable() < 6) formWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:#fbbf24;' }, 'LP insuffisants (6 LP requis).'));
+  return formWrap;
+}
+function renderNewOffSchemaModal() {
+  let overlay = document.getElementById('newOffSchemaModalOverlay');
+  if (overlay) overlay.remove();
+  if (!showNewOffSchemaModal) return;
+  const projectId = showNewOffSchemaModal;
+  overlay = el('div', { class: 'modal-overlay', id: 'newOffSchemaModalOverlay' });
+  overlay.onclick = (e) => { if (e.target === overlay) { showNewOffSchemaModal = null; render(); } };
+  const box = el('div', { class: 'modal-box' });
+  const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);' });
+  header.appendChild(el('div', { style: 'font-weight:800;color:var(--gold);' }, 'Ajout hors-schéma'));
+  const closeBtn = el('button', { class: 'btn', style: 'font-size:12px;' }, '✕');
+  closeBtn.onclick = () => { showNewOffSchemaModal = null; render(); };
+  header.appendChild(closeBtn);
+  box.appendChild(header);
+  box.appendChild(buildNewOffSchemaItemForm(projectId, () => { showNewOffSchemaModal = null; render(); }));
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+function renderDeleteProjectConfirmModal() {
+  let overlay = document.getElementById('deleteProjectModalOverlay');
+  if (overlay) overlay.remove();
+  if (!showDeleteProjectConfirm) return;
+  const projectId = showDeleteProjectConfirm;
+  const p = state.projects.find((pr) => pr.id === projectId);
+  if (!p) { showDeleteProjectConfirm = null; return; }
+  overlay = el('div', { class: 'modal-overlay', id: 'deleteProjectModalOverlay' });
+  overlay.onclick = (e) => { if (e.target === overlay) cancelDeleteProject(); };
+  const box = el('div', { class: 'modal-box' });
+  const header = el('div', { style: 'padding:14px 16px;border-bottom:1px solid var(--line);' });
+  header.appendChild(el('div', { style: 'font-weight:800;color:var(--danger);' }, '🗑 Supprimer le projet'));
+  box.appendChild(header);
+  const body = el('div', { class: 'panel-body' });
+  body.appendChild(el('div', { class: 'hint', style: 'margin-bottom:14px;' }, `Voulez-vous vraiment supprimer le projet "${p.name}" ? Cette action est irréversible.`));
+  const btnRow = el('div', { style: 'display:flex;gap:8px;' });
+  const cancelBtn = el('button', { class: 'btn', style: 'font-size:12px;flex:1 1 auto;' }, 'Annuler');
+  cancelBtn.onclick = () => cancelDeleteProject();
+  const okBtn = el('button', { class: 'btn danger', style: 'font-size:12px;flex:1 1 auto;' }, 'Supprimer');
+  okBtn.onclick = () => confirmDeleteProject(projectId);
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(okBtn);
+  body.appendChild(btnRow);
+  box.appendChild(body);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+function buildNewProjectForm(onDone) {
+  const formWrap = el('div', { class: 'panel-body', style: 'padding-top:6px;' });
+  const nameInput = el('input', { type: 'text', placeholder: 'Nom du projet...', value: newProjectDraft.name, style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;margin-bottom:8px;' });
+  nameInput.oninput = (e) => { newProjectDraft.name = e.target.value; };
+  formWrap.appendChild(nameInput);
+  const typeRow = el('div', { style: 'display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;' });
+  Object.entries(PROJECT_TYPES).forEach(([key, t]) => {
+    const active = newProjectDraft.type === key;
+    const b = el('button', { class: 'btn proj-type-btn', style: `font-size:11px;${active ? `background:${t.color}33;color:${t.color};border-color:${t.color};` : ''}` }, t.label);
+    b.onclick = () => { newProjectDraft.type = key; newProjectDraft.familierStats = []; render(); };
+    typeRow.appendChild(b);
+  });
+  formWrap.appendChild(typeRow);
+  const descInput = el('textarea', { rows: 2, placeholder: 'Description du projet (facultatif)...', style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;margin-bottom:8px;box-sizing:border-box;' }, '');
+  descInput.value = newProjectDraft.description || '';
+  descInput.oninput = (e) => { newProjectDraft.description = e.target.value; };
+  formWrap.appendChild(descInput);
+  const owned = ownedMagicsList();
+  const magicSel = el('select', { style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;margin-bottom:8px;' });
+  magicSel.appendChild(el('option', { value: '' }, owned.length ? '— Magie à laquelle rattacher le projet —' : 'Aucune magie acquise'));
+  owned.forEach((id) => magicSel.appendChild(el('option', { value: id }, `${ALL_MAGICS[id].name} (niv. ${state.acquired[id]})`)));
+  magicSel.value = newProjectDraft.magicId || '';
+  magicSel.disabled = !owned.length;
+  magicSel.onchange = (e) => { newProjectDraft.magicId = e.target.value; render(); };
+  formWrap.appendChild(magicSel);
+  if (newProjectDraft.type === 'familier') {
+    formWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:6px;' }, `Choisir 3 stats pour le familier (${newProjectDraft.familierStats.length}/3) :`));
+    const statsRow = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;' });
+    FAMILIER_STATS.forEach((s) => {
+      const active = newProjectDraft.familierStats.includes(s);
+      const full = newProjectDraft.familierStats.length >= 3;
+      const b = el('button', { class: 'btn', style: `font-size:11px;${active ? 'background:#0ea5e933;color:#0ea5e9;border-color:#0ea5e9;' : ''}${(!active && full) ? 'opacity:.4;' : ''}` }, s);
+      b.disabled = !active && full;
+      b.onclick = () => {
+        if (active) newProjectDraft.familierStats = newProjectDraft.familierStats.filter((x) => x !== s);
+        else if (newProjectDraft.familierStats.length < 3) newProjectDraft.familierStats = [...newProjectDraft.familierStats, s];
+        render();
+      };
+      statsRow.appendChild(b);
+    });
+    formWrap.appendChild(statsRow);
+  }
+  const familierStatsOk = newProjectDraft.type !== 'familier' || newProjectDraft.familierStats.length === 3;
+  const canCreate = !!newProjectDraft.magicId && lpAvailable() >= 6 && familierStatsOk;
+  const createBtn = el('button', { class: 'btn success', style: `font-size:12px;width:100%;${canCreate ? '' : 'opacity:.4;'}` }, `+ Créer le projet (6 LP)`);
+  createBtn.disabled = !canCreate;
+  createBtn.onclick = () => {
+    const nm = (newProjectDraft.name || '').trim() || 'Projet sans nom';
+    const ty = newProjectDraft.type;
+    const magicId = newProjectDraft.magicId;
+    const desc = newProjectDraft.description || '';
+    const familierStats = newProjectDraft.familierStats;
+    newProjectDraft = { name: '', type: 'mutation', magicId: '', description: '', familierStats: [] };
+    createProject(nm, ty, magicId, desc, familierStats);
+    if (onDone) onDone();
+  };
+  formWrap.appendChild(createBtn);
+  if (!owned.length) formWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:#fbbf24;' }, 'Acquérez d\'abord une magie pour pouvoir créer un projet.'));
+  else if (lpAvailable() < 6) formWrap.appendChild(el('div', { class: 'small', style: 'margin-top:6px;color:#fbbf24;' }, 'LP insuffisants (6 LP requis pour créer un projet).'));
+  return formWrap;
+}
+function renderNewProjectModal() {
+  let overlay = document.getElementById('newProjectModalOverlay');
+  if (overlay) overlay.remove();
+  if (!showNewProjectModal) return;
+  overlay = el('div', { class: 'modal-overlay', id: 'newProjectModalOverlay' });
+  overlay.onclick = (e) => { if (e.target === overlay) { showNewProjectModal = false; render(); } };
+  const box = el('div', { class: 'modal-box' });
+  const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);' });
+  header.appendChild(el('div', { style: 'font-weight:800;color:var(--gold);' }, 'Nouveau projet'));
+  const closeBtn = el('button', { class: 'btn', style: 'font-size:12px;' }, '✕');
+  closeBtn.onclick = () => { showNewProjectModal = false; render(); };
+  header.appendChild(closeBtn);
+  box.appendChild(header);
+  box.appendChild(buildNewProjectForm(() => { showNewProjectModal = false; render(); }));
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+function buildNewImprovementForm(onDone) {
+  const formWrap = el('div', { class: 'panel-body' });
+  formWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, 'Description'));
+  const descInput = el('textarea', { rows: '3', placeholder: 'Décrire l\'amélioration…', style: 'width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;margin-bottom:10px;resize:vertical;' });
+  descInput.value = newImprovementDraft.description || '';
+  descInput.oninput = (e) => { newImprovementDraft.description = e.target.value; };
+  formWrap.appendChild(descInput);
+  formWrap.appendChild(el('div', { class: 'small', style: 'margin-bottom:6px;' }, `Choisir 2 stats améliorées (${newImprovementDraft.stats.length}/2) :`));
+  const statsRow = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;' });
+  FAMILIER_STATS.forEach((s) => {
+    const active = newImprovementDraft.stats.includes(s);
+    const full = newImprovementDraft.stats.length >= 2;
+    const b = el('button', { class: 'btn', style: `font-size:11px;${active ? 'background:#0ea5e933;color:#0ea5e9;border-color:#0ea5e9;' : ''}${(!active && full) ? 'opacity:.4;' : ''}` }, s);
+    b.disabled = !active && full;
+    b.onclick = () => {
+      if (active) newImprovementDraft.stats = newImprovementDraft.stats.filter((x) => x !== s);
+      else if (newImprovementDraft.stats.length < 2) newImprovementDraft.stats = [...newImprovementDraft.stats, s];
+      renderNewImprovementModal();
+    };
+    statsRow.appendChild(b);
+  });
+  formWrap.appendChild(statsRow);
+  const canCreate = !!(newImprovementDraft.description || '').trim() && newImprovementDraft.stats.length === 2;
+  const createBtn = el('button', { class: 'btn success', style: `font-size:12px;width:100%;${canCreate ? '' : 'opacity:.4;'}` }, '+ Ajouter l\'amélioration');
+  createBtn.disabled = !canCreate;
+  createBtn.onclick = () => {
+    const desc = newImprovementDraft.description;
+    const stats = newImprovementDraft.stats;
+    newImprovementDraft = { description: '', stats: [] };
+    createImprovement(desc, stats);
+    if (onDone) onDone();
+  };
+  formWrap.appendChild(createBtn);
+  return formWrap;
+}
+function renderNewImprovementModal() {
+  let overlay = document.getElementById('newImprovementModalOverlay');
+  if (overlay) overlay.remove();
+  if (!showNewImprovementModal) return;
+  overlay = el('div', { class: 'modal-overlay', id: 'newImprovementModalOverlay' });
+  overlay.onclick = (e) => { if (e.target === overlay) { showNewImprovementModal = false; render(); } };
+  const box = el('div', { class: 'modal-box' });
+  const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);' });
+  header.appendChild(el('div', { style: 'font-weight:800;color:var(--gold);' }, 'Nouvelle amélioration'));
+  const closeBtn = el('button', { class: 'btn', style: 'font-size:12px;' }, '✕');
+  closeBtn.onclick = () => { showNewImprovementModal = false; render(); };
+  header.appendChild(closeBtn);
+  box.appendChild(header);
+  box.appendChild(buildNewImprovementForm(() => { showNewImprovementModal = false; render(); }));
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+function renderImprovements() {
+  const table = document.getElementById('improvementsTable');
+  table.innerHTML = '';
+  const headRow = el('tr', {});
+  headRow.appendChild(el('th', { style: 'text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-2);color:var(--muted);font-size:11px;letter-spacing:.05em;' }, 'DESCRIPTION'));
+  headRow.appendChild(el('th', { style: 'text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-2);color:var(--muted);font-size:11px;letter-spacing:.05em;width:38%;' }, 'STATS AMÉLIORÉES'));
+  headRow.appendChild(el('th', { style: 'width:28px;border-bottom:1px solid var(--line-2);' }, ''));
+  table.appendChild(headRow);
+  if (!state.improvements.length) {
+    const row = el('tr', {});
+    const cell = el('td', { colspan: '3', class: 'hint', style: 'padding:10px 8px;' }, 'Aucune amélioration pour l\'instant.');
+    row.appendChild(cell);
+    table.appendChild(row);
+  }
+  state.improvements.forEach((imp) => {
+    const row = el('tr', {});
+    row.appendChild(el('td', { style: 'padding:8px;border-bottom:1px solid #0f0f20;vertical-align:top;' }, imp.description));
+    const statsCell = el('td', { style: 'padding:8px;border-bottom:1px solid #0f0f20;vertical-align:top;' });
+    imp.stats.forEach((s) => statsCell.appendChild(el('span', { class: 'badge', style: 'background:#0ea5e922;color:#0ea5e9;border:1px solid #0ea5e955;margin-right:4px;margin-bottom:4px;display:inline-block;' }, s)));
+    row.appendChild(statsCell);
+    const delCell = el('td', { style: 'padding:8px;border-bottom:1px solid #0f0f20;vertical-align:top;' });
+    const delBtn = el('button', { class: 'btn danger', style: 'font-size:11px;padding:4px 7px;' }, '✕');
+    delBtn.onclick = () => deleteImprovement(imp.id);
+    delCell.appendChild(delBtn);
+    row.appendChild(delCell);
+    table.appendChild(row);
+  });
+  const addBtn = document.getElementById('addImprovementBtn');
+  addBtn.onclick = () => { showNewImprovementModal = true; render(); };
+  renderNewImprovementModal();
+
+  const statsTable = document.getElementById('statsTotalsTable');
+  statsTable.innerHTML = '';
+  const cap = statCap();
+  const sHead = el('tr', {});
+  sHead.appendChild(el('th', { style: 'text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-2);color:var(--muted);font-size:11px;letter-spacing:.05em;' }, 'STAT'));
+  sHead.appendChild(el('th', { style: 'text-align:right;padding:6px 8px;border-bottom:1px solid var(--line-2);color:var(--muted);font-size:11px;letter-spacing:.05em;' }, `VALEUR (max ${cap})`));
+  statsTable.appendChild(sHead);
+  FAMILIER_STATS.forEach((s) => {
+    const raw = statTotal(s);
+    const total = clampedStatTotal(s);
+    const capped = raw > cap;
+    const row = el('tr', {});
+    row.appendChild(el('td', { style: 'padding:7px 8px;border-bottom:1px solid #0f0f20;' }, s));
+    const valCell = el('td', { style: `padding:7px 8px;border-bottom:1px solid #0f0f20;text-align:right;font-weight:800;color:${capped ? 'var(--danger)' : (total > 0 ? 'var(--success)' : 'var(--muted)')};` }, `${total} / ${cap}`);
+    if (capped) valCell.title = `Plafonné : valeur brute ${raw}, maximum ${cap} (cercle ${statCapCircle()})`;
+    row.appendChild(valCell);
+    statsTable.appendChild(row);
+  });
+}
+function renderProjects() {
+  const meta = document.getElementById('projectsMeta');
+  const list = document.getElementById('projectsList');
+  meta.innerHTML = `<div class="small">${state.projects.length} projet${state.projects.length !== 1 ? 's' : ''} · <strong style="color:#c084fc">${lpSpentOnProjects()} LP</strong> dépensés</div>`;
+  list.innerHTML = '';
+  const addBtn = el('button', { class: 'btn success', style: 'font-size:12px;width:100%;margin:10px 0;' }, '+ Ajouter un projet');
+  addBtn.onclick = () => { showNewProjectModal = true; render(); };
+  const addBtnWrap = el('div', { class: 'panel-body', style: 'padding-bottom:0;' });
+  addBtnWrap.appendChild(addBtn);
+  list.appendChild(addBtnWrap);
+  renderNewProjectModal();
+  if (!state.projects.length) list.appendChild(el('div', { class: 'hint', style: 'padding:9px 13px;' }, 'Aucun projet pour l\'instant.'));
+  state.projects.forEach((p) => {
+    const type = PROJECT_TYPES[p.type];
+    const isSel = state.selectedProject === p.id;
+    const btn = el('button', { class: 'acq-item', style: `border-left:3px solid ${isSel ? type.color : 'transparent'};background:${isSel ? type.color + '18' : 'transparent'};` });
+    btn.onclick = () => selectProject(p.id);
+    const done = PROJECT_TREE[p.path[p.path.length - 1]].next.length === 0;
+    btn.innerHTML = `<span class="badge" style="background:${type.color}22;color:${type.color};border:1px solid ${type.color}55;">${type.label[0]}</span><div style="flex:1 1 auto;"><div style="font-weight:700;">${p.name}${done ? ' ✓' : ''}</div><div class="small">${type.label} · ${projectLpCost(p)} LP · ${p.path.length - 1}/5 cercles</div></div>`;
+    list.appendChild(btn);
+    const summaryHolder = el('div', { class: 'panel-body', id: `proj-summary-${p.id}`, style: `padding-top:10px;border-bottom:1px solid #0f0f20;background:${type.color}0d;` });
+    summaryHolder.appendChild(renderProjectSummary(p));
+    list.appendChild(summaryHolder);
+  });
+}
+function refreshMagicSpecList(id) {
+  const container = document.getElementById(`spec-list-${id}`);
+  if (!container) return;
+  const lv = state.acquired[id] || 0;
+  container.innerHTML = '';
+  container.appendChild(renderSpecializationsList(ALL_MAGICS[id], lv));
+}
+function refreshProjectSummary(id) {
+  const container = document.getElementById(`proj-summary-${id}`);
+  if (!container) return;
+  const p = state.projects.find((pr) => pr.id === id);
+  if (!p) return;
+  container.innerHTML = '';
+  container.appendChild(renderProjectSummary(p));
+}
+function render() { renderTopbar(); renderDetail(); renderSvg(); renderImprovements(); renderAcquired(); renderProjects(); renderDeleteProjectConfirmModal(); }
+function buildSaveData() {
+  return { mode: state.mode, budget: state.budget, acquired: state.acquired, lpBought: state.lpBought, specializations: state.specializations, projects: state.projects, improvements: state.improvements };
+}
+function saveState() {
+  const blob = new Blob([JSON.stringify(buildSaveData(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'mage-build.json'; a.click(); URL.revokeObjectURL(url);
+}
+function applyState(d) {
+  if (d.mode) state.mode = d.mode;
+  if (typeof d.budget === 'number') state.budget = d.budget;
+  if (d.acquired && typeof d.acquired === 'object') state.acquired = d.acquired;
+  if (d.lpBought && typeof d.lpBought === 'object') state.lpBought = d.lpBought;
+  state.specializations = (d.specializations && typeof d.specializations === 'object') ? d.specializations : {};
+  state.projects = Array.isArray(d.projects) ? d.projects : [];
+  state.projects.forEach((p) => {
+    if (typeof p.offSchema !== 'boolean') p.offSchema = false;
+    if (typeof p.offSchemaMax !== 'number') p.offSchemaMax = 0;
+    if (!Array.isArray(p.offSchemaItems)) p.offSchemaItems = [];
+  });
+  state.improvements = Array.isArray(d.improvements) ? d.improvements : [];
+  state.selected = null; state.selectedProject = null; render();
+}
+function loadState(file) {
+  const fr = new FileReader();
+  fr.onload = (ev) => {
+    try { applyState(JSON.parse(ev.target.result)); }
+    catch (e) { alert('Fichier JSON invalide'); }
+  };
+  fr.readAsText(file);
+}
+
+/* ================= Sauvegarde sur GitHub ================= */
+// Valeurs par défaut : à modifier une fois avec ton compte / dépôt.
+// Chaque utilisateur peut les surcharger via le bouton ⚙️ (stocké dans son navigateur).
+const GH_DEFAULTS = { owner: 'TON-USER', repo: 'TON-REPO', folder: 'builds' };
+
+function ghCfg() {
+  let c = {};
+  try { c = JSON.parse(localStorage.getItem('gh_cfg') || '{}') || {}; } catch (e) {}
+  return {
+    owner: c.owner || GH_DEFAULTS.owner,
+    repo: c.repo || GH_DEFAULTS.repo,
+    folder: (c.folder || GH_DEFAULTS.folder).replace(/^\/+|\/+$/g, ''),
+    token: c.token || ''
+  };
+}
+function ghConfigured(cfg) {
+  return !!cfg.owner && cfg.owner !== 'TON-USER' && !!cfg.repo && cfg.repo !== 'TON-REPO';
+}
+function ghFolderUrl(cfg) {
+  const enc = encodeURIComponent;
+  const path = cfg.folder ? '/' + cfg.folder.split('/').map(enc).join('/') : '';
+  return `https://api.github.com/repos/${enc(cfg.owner)}/${enc(cfg.repo)}/contents${path}`;
+}
+function ghFileUrl(cfg, name) { return ghFolderUrl(cfg) + '/' + encodeURIComponent(name + '.json'); }
+function ghHeaders(cfg, accept) {
+  const h = { Accept: accept || 'application/vnd.github+json' };
+  if (cfg.token) h.Authorization = 'Bearer ' + cfg.token;
+  return h;
+}
+function ghError(res) {
+  const m = {
+    401: 'Token invalide ou expiré (⚙️ pour le modifier).',
+    403: 'Accès refusé (droits insuffisants ou limite de requêtes atteinte).',
+    404: 'Dépôt, dossier ou fichier introuvable (ou token sans accès à ce dépôt).',
+    409: 'Conflit : le fichier a été modifié entre-temps, réessaie.',
+    422: 'Requête refusée par GitHub (nom de fichier invalide ?).'
+  };
+  return new Error(m[res.status] || ('Erreur GitHub ' + res.status));
+}
+function b64(str) { return btoa(unescape(encodeURIComponent(str))); }
+
+function defaultBuildName() {
+  const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  return `magic-build_${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()}_${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function cleanBuildName(raw) {
+  let n = (raw || '').trim().replace(/\.json$/i, '').replace(/[\\/?#%*"<>|]/g, '-').slice(0, 100).trim();
+  return n || defaultBuildName();
+}
+async function ghGetSha(cfg, name) {
+  const r = await fetch(ghFileUrl(cfg, name), { headers: ghHeaders(cfg), cache: 'no-store' });
+  if (r.status === 404) return null;
+  if (!r.ok) throw ghError(r);
+  return (await r.json()).sha;
+}
+function ghPut(cfg, name, data, sha) {
+  const body = { message: `Sauvegarde du build « ${name} »`, content: b64(JSON.stringify(data, null, 2)) };
+  if (sha) body.sha = sha;
+  return fetch(ghFileUrl(cfg, name), { method: 'PUT', headers: ghHeaders(cfg), body: JSON.stringify(body) });
+}
+function buildTimestamp(name) {
+  const m = name.match(/(\d{2})-(\d{2})-(\d{4})_(\d{2}):(\d{2})/);
+  return m ? new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]).getTime() : null;
+}
+
+/* ---- petite modale générique ---- */
+function ghCloseModal() { const o = document.getElementById('ghModalOverlay'); if (o) o.remove(); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ghCloseModal(); });
+function ghModal(title, buildBody) {
+  ghCloseModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'ghModalOverlay';
+  overlay.onclick = (e) => { if (e.target === overlay) ghCloseModal(); };
+  const box = document.createElement('div'); box.className = 'modal-box';
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:14px 16px;border-bottom:1px solid var(--line);font-weight:800;color:var(--gold);';
+  header.textContent = title;
+  const body = document.createElement('div'); body.className = 'panel-body';
+  box.appendChild(header); box.appendChild(body); overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  buildBody(body);
+}
+function ghField(body, label, type, value, placeholder) {
+  const l = document.createElement('label'); l.className = 'gh-label'; l.textContent = label;
+  const i = document.createElement('input'); i.className = 'gh-input'; i.type = type; i.value = value || ''; i.placeholder = placeholder || '';
+  i.autocomplete = 'off'; i.spellcheck = false;
+  body.appendChild(l); body.appendChild(i);
+  return i;
+}
+function ghStatusEl(body) { const s = document.createElement('div'); s.className = 'gh-status'; body.appendChild(s); return s; }
+function ghSetStatus(el, msg, kind) { el.textContent = msg; el.className = 'gh-status' + (kind ? ' ' + kind : ''); }
+function ghButtons(body, buttons) {
+  const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;margin-top:14px;';
+  buttons.forEach(([label, cls, fn]) => {
+    const b = document.createElement('button'); b.className = 'btn ' + cls; b.style.cssText = 'font-size:12px;flex:1 1 auto;';
+    b.textContent = label; b.onclick = () => fn(b); row.appendChild(b);
+  });
+  body.appendChild(row);
+}
+function ghHint(body, text) {
+  const h = document.createElement('div'); h.className = 'hint'; h.style.cssText = 'font-size:12px;margin-bottom:4px;'; h.textContent = text; body.appendChild(h);
+}
+
+/* ---- configuration ---- */
+function openGhConfig(reason) {
+  const cfg = ghCfg();
+  ghModal('⚙️ Configuration GitHub', (body) => {
+    if (reason) ghHint(body, reason);
+    ghHint(body, 'Le token (fine-grained, permission « Contents : Read and write » sur le dépôt) n\'est stocké que dans ce navigateur. Il n\'est utile que pour sauvegarder ; le chargement fonctionne sans sur un dépôt public.');
+    const iOwner = ghField(body, 'Compte GitHub (propriétaire du dépôt)', 'text', cfg.owner === 'TON-USER' ? '' : cfg.owner, 'ex : mon-pseudo');
+    const iRepo = ghField(body, 'Dépôt', 'text', cfg.repo === 'TON-REPO' ? '' : cfg.repo, 'ex : arcane-build');
+    const iFolder = ghField(body, 'Dossier des builds', 'text', cfg.folder, 'builds');
+    const iToken = ghField(body, 'Token GitHub', 'password', cfg.token, 'github_pat_… (laisser vide pour l\'effacer)');
+    const st = ghStatusEl(body);
+    ghButtons(body, [
+      ['Annuler', '', () => ghCloseModal()],
+      ['Enregistrer', 'gold', () => {
+        const c = { owner: iOwner.value.trim(), repo: iRepo.value.trim(), folder: iFolder.value.trim(), token: iToken.value.trim() };
+        if (!c.owner || !c.repo) { ghSetStatus(st, 'Compte et dépôt obligatoires.', 'err'); return; }
+        try { localStorage.setItem('gh_cfg', JSON.stringify(c)); } catch (e) { ghSetStatus(st, 'Impossible d\'enregistrer (stockage navigateur bloqué).', 'err'); return; }
+        ghCloseModal();
+      }]
+    ]);
+  });
+}
+
+/* ---- sauvegarde ---- */
+function openGhSave() {
+  const cfg = ghCfg();
+  if (!ghConfigured(cfg)) { openGhConfig('Renseigne d\'abord le compte et le dépôt GitHub.'); return; }
+  if (!cfg.token) { openGhConfig('Un token GitHub est nécessaire pour sauvegarder.'); return; }
+  ghModal('☁️ Sauvegarder sur GitHub', (body) => {
+    const input = ghField(body, 'Nom du build', 'text', defaultBuildName(), '');
+    ghHint(body, `Enregistré dans ${cfg.owner}/${cfg.repo}/${cfg.folder}/ (extension .json ajoutée automatiquement).`);
+    const st = ghStatusEl(body);
+    const doSave = async (btn) => {
+      const name = cleanBuildName(input.value);
+      btn.disabled = true; ghSetStatus(st, 'Envoi en cours…');
+      try {
+        let sha = await ghGetSha(cfg, name);
+        if (sha && !confirm(`Un build nommé « ${name} » existe déjà. L'écraser ?`)) { btn.disabled = false; ghSetStatus(st, ''); return; }
+        let res = await ghPut(cfg, name, buildSaveData(), sha);
+        if (res.status === 409) { sha = await ghGetSha(cfg, name); res = await ghPut(cfg, name, buildSaveData(), sha); }
+        if (!res.ok) throw ghError(res);
+        ghSetStatus(st, `✅ Sauvegardé : ${name}.json`, 'ok');
+        setTimeout(ghCloseModal, 1400);
+      } catch (e) { btn.disabled = false; ghSetStatus(st, e.message || String(e), 'err'); }
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(body.querySelector('.btn.gold')); });
+    ghButtons(body, [['Annuler', '', () => ghCloseModal()], ['Sauvegarder', 'gold', doSave]]);
+    input.focus(); input.select();
+  });
+}
+
+/* ---- chargement ---- */
+function openGhLoad() {
+  const cfg = ghCfg();
+  if (!ghConfigured(cfg)) { openGhConfig('Renseigne d\'abord le compte et le dépôt GitHub.'); return; }
+  ghModal('☁️ Charger depuis GitHub', (body) => {
+    const st = ghStatusEl(body);
+    ghSetStatus(st, 'Chargement de la liste…');
+    const list = document.createElement('div'); list.className = 'gh-list'; list.style.marginTop = '8px';
+    body.insertBefore(list, st);
+    ghButtons(body, [['Fermer', '', () => ghCloseModal()]]);
+    (async () => {
+      try {
+        const r = await fetch(ghFolderUrl(cfg), { headers: ghHeaders(cfg), cache: 'no-store' });
+        if (r.status === 404) { ghSetStatus(st, 'Aucun build sauvegardé pour le moment.'); return; }
+        if (!r.ok) throw ghError(r);
+        const files = (await r.json()).filter((f) => f.type === 'file' && /\.json$/i.test(f.name))
+          .map((f) => ({ name: f.name.replace(/\.json$/i, ''), ts: buildTimestamp(f.name) }));
+        files.sort((a, b) => (b.ts ?? -1) - (a.ts ?? -1) || a.name.localeCompare(b.name));
+        if (!files.length) { ghSetStatus(st, 'Aucun build sauvegardé pour le moment.'); return; }
+        ghSetStatus(st, `${files.length} build(s) — clique pour charger.`);
+        files.forEach((f) => {
+          const b = document.createElement('button'); b.className = 'btn gh-item'; b.textContent = f.name;
+          b.onclick = async () => {
+            ghSetStatus(st, 'Chargement…');
+            try {
+              const rr = await fetch(ghFileUrl(cfg, f.name), { headers: ghHeaders(cfg, 'application/vnd.github.raw+json'), cache: 'no-store' });
+              if (!rr.ok) throw ghError(rr);
+              applyState(await rr.json());
+              ghCloseModal();
+            } catch (e) { ghSetStatus(st, e.message || String(e), 'err'); }
+          };
+          list.appendChild(b);
+        });
+      } catch (e) { ghSetStatus(st, e.message || String(e), 'err'); }
+    })();
+  });
+}
+document.getElementById('modePlanning').onclick = () => setMode('planning');
+document.getElementById('modeBudget').onclick = () => setMode('budget');
+document.getElementById('budgetInput').addEventListener('input', (e) => { state.budget = Math.max(0, +e.target.value || 0); render(); });
+document.getElementById('saveBtn').onclick = saveState;
+document.getElementById('ghSaveBtn').onclick = openGhSave;
+document.getElementById('ghLoadBtn').onclick = openGhLoad;
+document.getElementById('ghCfgBtn').onclick = () => openGhConfig();
+document.getElementById('loadBtn').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('fileInput').addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) loadState(file); e.target.value = ''; });
+document.getElementById('resetBtn').onclick = () => { state.acquired = {}; state.lpBought = {}; state.specializations = {}; state.projects = []; state.improvements = []; state.selected = null; state.selectedProject = null; render(); };
+document.getElementById('magicsHeader').onclick = () => toggleSection('magicsBody', 'magicsChevron');
+document.getElementById('projectsHeader').onclick = () => toggleSection('projectsBody', 'projectsChevron');
+function toggleSection(bodyId, chevronId) {
+  const body = document.getElementById(bodyId);
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  document.getElementById(chevronId).textContent = collapsed ? '▾' : '▸';
+}
+render();
+</script>
+</body>
+</html>
