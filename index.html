@@ -146,7 +146,7 @@
     <button id="loadBtn" class="btn success">📂 Charger</button>
     <button id="ghSaveBtn" class="btn gold" title="Enregistrer dans le dépôt GitHub">☁️ Sauver GitHub</button>
     <button id="ghLoadBtn" class="btn success" title="Charger depuis le dépôt GitHub">☁️ Charger GitHub</button>
-    <button id="ghCfgBtn" class="btn" title="Token GitHub">🔑</button>
+    <button id="ghCfgBtn" class="btn" title="Options (nom, token)">⚙️</button>
     <button id="resetBtn" class="btn danger">🗑 Reset</button>
     <input id="fileInput" type="file" accept="application/json" hidden />
   </div>
@@ -1629,14 +1629,19 @@ function loadState(file) {
 // Valeurs par défaut : à modifier une fois avec ton compte / dépôt.
 const GH_DEFAULTS = { owner: 'Idrur', repo: 'Crithemis-builder', folder: 'builds' };
 
+function ghValidToken(t) { return typeof t === 'string' && /^[A-Za-z0-9_]{20,255}$/.test(t); }
+function cleanUserFolder(raw) {
+  return (raw || '').replace(/[\\/?#%*"<>|:]/g, '-').replace(/^[.\s-]+|[\s]+$/g, '').slice(0, 40);
+}
 function ghCfg() {
   let c = {};
   try { c = JSON.parse(localStorage.getItem('gh_cfg') || '{}') || {}; } catch (e) {}
   return {
     owner: c.owner || GH_DEFAULTS.owner,
     repo: c.repo || GH_DEFAULTS.repo,
-    folder: (c.folder || GH_DEFAULTS.folder).replace(/^\/+|\/+$/g, ''),
-    token: c.token || ''
+    user: cleanUserFolder(c.user),
+    folder: GH_DEFAULTS.folder + (cleanUserFolder(c.user) ? '/' + cleanUserFolder(c.user) : ''),
+    token: ghValidToken(c.token) ? c.token : ''
   };
 }
 function ghConfigured(cfg) {
@@ -1655,7 +1660,7 @@ function ghHeaders(cfg, accept) {
 }
 function ghError(res) {
   const m = {
-    401: 'Token invalide ou expiré (🔑 pour le modifier).',
+    401: 'Token invalide ou expiré (⚙️ pour le modifier).',
     403: 'Accès refusé (droits insuffisants ou limite de requêtes atteinte).',
     404: 'Dépôt, dossier ou fichier introuvable (ou token sans accès à ce dépôt).',
     409: 'Conflit : le fichier a été modifié entre-temps, réessaie.',
@@ -1730,20 +1735,25 @@ function ghHint(body, text) {
 /* ---- configuration ---- */
 function openGhConfig(reason) {
   const cfg = ghCfg();
-  ghModal('🔑 Token GitHub', (body) => {
-    if (reason) ghHint(body, reason);
-    ghHint(body, 'Colle le token qui t\'a été communiqué. Il reste uniquement dans ce navigateur et n\'est nécessaire que pour sauvegarder (le chargement n\'en demande pas).');
+  ghModal('⚙️ Options', (body) => {
+    if (reason) { const r = document.createElement('div'); r.className = 'hint'; r.style.cssText = 'font-size:13px;margin-bottom:6px;color:var(--gold);'; r.textContent = reason; body.appendChild(r); }
+    const iUser = ghField(body, 'Ton nom (sous-dossier, facultatif)', 'text', cfg.user, 'ex : Camille');
+    ghHint(body, `Tes builds seront dans ${GH_DEFAULTS.folder}/${cfg.user ? cfg.user + '/' : ''} sur le dépôt (sans nom : directement dans ${GH_DEFAULTS.folder}/).`);
     const iToken = ghField(body, 'Token GitHub', 'password', cfg.token, 'github_pat_… (laisser vide pour l\'effacer)');
+    ghHint(body, 'Le token reste uniquement dans ce navigateur. Il n\'est nécessaire que pour sauvegarder.');
     const st = ghStatusEl(body);
     ghButtons(body, [
       ['Annuler', '', () => ghCloseModal()],
       ['Enregistrer', 'gold', () => {
-        try { localStorage.setItem('gh_cfg', JSON.stringify({ token: iToken.value.trim() })); }
+        const t = iToken.value.trim();
+        const u = cleanUserFolder(iUser.value);
+        if (t && !ghValidToken(t)) { ghSetStatus(st, 'Ce n\'est pas un token valide : il doit ressembler à github_pat_xxxx… (lettres, chiffres et _ uniquement, sans espace).', 'err'); return; }
+        try { localStorage.setItem('gh_cfg', JSON.stringify({ user: u, token: t })); }
         catch (e) { ghSetStatus(st, 'Impossible d\'enregistrer (stockage navigateur bloqué).', 'err'); return; }
         ghCloseModal();
       }]
     ]);
-    iToken.focus();
+    iUser.focus();
   });
 }
 
