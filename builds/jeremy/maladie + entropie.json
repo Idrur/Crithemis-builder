@@ -1,0 +1,22 @@
+{
+  "mode": "planning",
+  "budget": 50,
+  "acquired": {
+    "magic": 1,
+    "elemental": 1,
+    "focus": 1,
+    "arcane": 1,
+    "balance": 1,
+    "space_time": 1,
+    "mana": 1,
+    "life": 6,
+    "entropy": 6
+  },
+  "lpBought": {
+    "life": true,
+    "entropy": true
+  },
+  "specializations": {},
+  "projects": [],
+  "improvements": []
+}
