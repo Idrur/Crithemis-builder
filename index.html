@@ -146,7 +146,7 @@
     <button id="loadBtn" class="btn success">📂 Charger</button>
     <button id="ghSaveBtn" class="btn gold" title="Enregistrer dans le dépôt GitHub">☁️ Sauver GitHub</button>
     <button id="ghLoadBtn" class="btn success" title="Charger depuis le dépôt GitHub">☁️ Charger GitHub</button>
-    <button id="ghCfgBtn" class="btn" title="Configuration GitHub">⚙️</button>
+    <button id="ghCfgBtn" class="btn" title="Token GitHub">🔑</button>
     <button id="resetBtn" class="btn danger">🗑 Reset</button>
     <input id="fileInput" type="file" accept="application/json" hidden />
   </div>
@@ -1627,7 +1627,6 @@ function loadState(file) {
 
 /* ================= Sauvegarde sur GitHub ================= */
 // Valeurs par défaut : à modifier une fois avec ton compte / dépôt.
-// Chaque utilisateur peut les surcharger via le bouton ⚙️ (stocké dans son navigateur).
 const GH_DEFAULTS = { owner: 'Idrur', repo: 'Crithemis-builder', folder: 'builds' };
 
 function ghCfg() {
@@ -1656,7 +1655,7 @@ function ghHeaders(cfg, accept) {
 }
 function ghError(res) {
   const m = {
-    401: 'Token invalide ou expiré (⚙️ pour le modifier).',
+    401: 'Token invalide ou expiré (🔑 pour le modifier).',
     403: 'Accès refusé (droits insuffisants ou limite de requêtes atteinte).',
     404: 'Dépôt, dossier ou fichier introuvable (ou token sans accès à ce dépôt).',
     409: 'Conflit : le fichier a été modifié entre-temps, réessaie.',
@@ -1731,30 +1730,26 @@ function ghHint(body, text) {
 /* ---- configuration ---- */
 function openGhConfig(reason) {
   const cfg = ghCfg();
-  ghModal('⚙️ Configuration GitHub', (body) => {
+  ghModal('🔑 Token GitHub', (body) => {
     if (reason) ghHint(body, reason);
-    ghHint(body, 'Le token (fine-grained, permission « Contents : Read and write » sur le dépôt) n\'est stocké que dans ce navigateur. Il n\'est utile que pour sauvegarder ; le chargement fonctionne sans sur un dépôt public.');
-    const iOwner = ghField(body, 'Compte GitHub (propriétaire du dépôt)', 'text', cfg.owner === 'TON-USER' ? '' : cfg.owner, 'ex : mon-pseudo');
-    const iRepo = ghField(body, 'Dépôt', 'text', cfg.repo === 'TON-REPO' ? '' : cfg.repo, 'ex : arcane-build');
-    const iFolder = ghField(body, 'Dossier des builds', 'text', cfg.folder, 'builds');
+    ghHint(body, 'Colle le token qui t\'a été communiqué. Il reste uniquement dans ce navigateur et n\'est nécessaire que pour sauvegarder (le chargement n\'en demande pas).');
     const iToken = ghField(body, 'Token GitHub', 'password', cfg.token, 'github_pat_… (laisser vide pour l\'effacer)');
     const st = ghStatusEl(body);
     ghButtons(body, [
       ['Annuler', '', () => ghCloseModal()],
       ['Enregistrer', 'gold', () => {
-        const c = { owner: iOwner.value.trim(), repo: iRepo.value.trim(), folder: iFolder.value.trim(), token: iToken.value.trim() };
-        if (!c.owner || !c.repo) { ghSetStatus(st, 'Compte et dépôt obligatoires.', 'err'); return; }
-        try { localStorage.setItem('gh_cfg', JSON.stringify(c)); } catch (e) { ghSetStatus(st, 'Impossible d\'enregistrer (stockage navigateur bloqué).', 'err'); return; }
+        try { localStorage.setItem('gh_cfg', JSON.stringify({ token: iToken.value.trim() })); }
+        catch (e) { ghSetStatus(st, 'Impossible d\'enregistrer (stockage navigateur bloqué).', 'err'); return; }
         ghCloseModal();
       }]
     ]);
+    iToken.focus();
   });
 }
 
 /* ---- sauvegarde ---- */
 function openGhSave() {
   const cfg = ghCfg();
-  if (!ghConfigured(cfg)) { openGhConfig('Renseigne d\'abord le compte et le dépôt GitHub.'); return; }
   if (!cfg.token) { openGhConfig('Un token GitHub est nécessaire pour sauvegarder.'); return; }
   ghModal('☁️ Sauvegarder sur GitHub', (body) => {
     const input = ghField(body, 'Nom du build', 'text', defaultBuildName(), '');
@@ -1782,7 +1777,6 @@ function openGhSave() {
 /* ---- chargement ---- */
 function openGhLoad() {
   const cfg = ghCfg();
-  if (!ghConfigured(cfg)) { openGhConfig('Renseigne d\'abord le compte et le dépôt GitHub.'); return; }
   ghModal('☁️ Charger depuis GitHub', (body) => {
     const st = ghStatusEl(body);
     ghSetStatus(st, 'Chargement de la liste…');
