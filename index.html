@@ -124,6 +124,8 @@
     .chevron { font-size: 10px; transition: transform .15s ease; }
     .proj-type-btn { border-radius: 8px; }
     .proj-node-text { pointer-events: none; }
+    .xpbox input[type="number"] { width: 56px; padding: 4px 6px; }
+    .xpbox input.wide { width: 64px; }
     @media (max-width: 1250px) { .layout { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -142,6 +144,9 @@
     <div class="spacer"></div>
     <div class="xpbox">XP : <strong id="xpSpent">0</strong> <span id="xpModeHint">(illimité)</span></div>
     <div class="xpbox">HP : <strong id="hpTotal">0</strong></div>
+    <div class="xpbox" title="Wounds actuelles / maximum">Wounds : <input id="woundCur" type="number" min="0" step="1" value="0" /> / <input id="woundMax" type="number" min="0" step="1" value="3" /></div>
+    <div class="xpbox">Aliénations : <strong id="alienTotal">0</strong></div>
+    <div class="xpbox" title="LP ajoutés à la main (en plus de ceux générés par les magies)">LP manuels : <input id="lpManual" type="number" min="0" step="1" value="0" class="wide" /></div>
     <button id="saveBtn" class="btn gold">💾 Sauver</button>
     <button id="loadBtn" class="btn success">📂 Charger</button>
     <button id="ghSaveBtn" class="btn gold" title="Enregistrer dans le dépôt GitHub">☁️ Sauver GitHub</button>
@@ -157,6 +162,7 @@
       <div class="panel-body" id="detailPanel"></div>
     </section>
 
+    <div style="display:flex; flex-direction:column; gap:16px; min-width:0;">
     <section class="panel">
       <div class="panel-header">CERCLES ARCANIQUES</div>
       <div class="svg-wrap"><svg id="arcaneSvg" viewBox="0 0 980 980" aria-label="Carte des magies"></svg></div>
@@ -171,6 +177,24 @@
         </div>
       </div>
     </section>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+      <section class="panel" style="flex:1 1 240px; min-width:0;">
+        <div class="panel-header">ALIÉNATIONS <span id="alienCountTitle" style="color:var(--gold);">(0)</span></div>
+        <div class="panel-body">
+          <table id="alienationsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+          <button id="addAlienationBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter une aliénation</button>
+        </div>
+      </section>
+      <section class="panel" style="flex:1 1 240px; min-width:0;">
+        <div class="panel-header">CRITHÉMIS</div>
+        <div class="panel-body">
+          <table id="crithemisTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+          <button id="addCrithemisBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter un effet</button>
+        </div>
+      </section>
+    </div>
+    </div>
 
     <section class="panel">
       <div class="panel-header collapsible-header" id="magicsHeader">
@@ -396,7 +420,7 @@ RAW_CIRCLES.forEach(({ circle, magics }) => {
 // lpBought: { id: true }   — magics bought at level 1 with LP (level upgrades still in acquired)
 // specializations: { id: [spec1, spec2, spec3] } — free-text specializations unlocked at levels 4, 5, 6
 // projects: [{ id, name, type, path: [nodeId,...] }] — mutation/familier/artefact projects (see PROJECT_TREE)
-const state = { mode: 'planning', budget: 50, acquired: {}, lpBought: {}, specializations: {}, projects: [], improvements: [], selected: null, selectedProject: null };
+const state = { mode: 'planning', budget: 50, acquired: {}, lpBought: {}, specializations: {}, projects: [], improvements: [], lpBonus: 0, wounds: { cur: 0, max: 3 }, alienations: [], crithemis: [], selected: null, selectedProject: null };
 const ns = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs={}, html='') => { const n = document.createElement(tag); Object.entries(attrs).forEach(([k,v]) => n.setAttribute(k,v)); if (html) n.innerHTML = html; return n; };
 const svgEl = (tag, attrs={}) => { const n = document.createElementNS(ns, tag); Object.entries(attrs).forEach(([k,v]) => n.setAttribute(k,v)); return n; };
@@ -408,7 +432,7 @@ const xpForLevel = (lv, c) => lv * c;
 const xpForLpMagic = (lv, c) => lv <= 1 ? 0 : (lv - 1) * c;
 const isMagicLpBought = (id) => !!state.lpBought[id];
 // Total LP generated from all acquired magics (LP-bought magics also generate LP based on their level)
-const totalLP = () => Object.entries(state.acquired).reduce((s, [id, lv]) => {
+const totalLP = () => (state.lpBonus || 0) + Object.entries(state.acquired).reduce((s, [id, lv]) => {
   return s + getLPBonus(lv, ALL_MAGICS[id].circle);
 }, 0);
 // LP spent on LP-bought magics (6 LP each) + LP spent on project circles (6 LP each, first row free per project)
@@ -634,6 +658,10 @@ function renderTopbar() {
   const lp = lpAvailable(), lpTot = totalLP();
   document.getElementById('xpSpent').textContent = `${xpSpent()} XP · ${lpSpent()}/${lpTot} LP`;
   document.getElementById('hpTotal').textContent = `${hpTotal()}`;
+  const wCur = document.getElementById('woundCur'), wMax = document.getElementById('woundMax');
+  wCur.value = state.wounds.cur; wCur.max = state.wounds.max; wMax.value = state.wounds.max;
+  document.getElementById('alienTotal').textContent = `${state.alienations.length}`;
+  document.getElementById('lpManual').value = state.lpBonus;
   document.getElementById('xpModeHint').textContent = state.mode === 'planning' ? `(${lp} LP dispo)` : '';
   document.getElementById('budgetLeft').textContent = state.mode === 'budget' ? `(${xpLeft() >= 0 ? '+' : ''}${xpLeft()} XP restant · ${lp} LP dispo)` : '';
 }
@@ -1593,9 +1621,69 @@ function refreshProjectSummary(id) {
   container.innerHTML = '';
   container.appendChild(renderProjectSummary(p));
 }
-function render() { renderTopbar(); renderDetail(); renderSvg(); renderImprovements(); renderAcquired(); renderProjects(); renderDeleteProjectConfirmModal(); }
+
+// ── aliénations & crithémis (listes de descriptions) ───────────
+function clampWounds() {
+  state.wounds.max = Math.max(0, Math.floor(+state.wounds.max) || 0);
+  state.wounds.cur = Math.min(state.wounds.max, Math.max(0, Math.floor(+state.wounds.cur) || 0));
+}
+function addTextEntry(key, description) {
+  const desc = (description || '').trim();
+  if (!desc) return;
+  state[key].push({ id: key.slice(0, 4) + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), description: desc });
+  render();
+}
+function deleteTextEntry(key, id) { state[key] = state[key].filter((e) => e.id !== id); render(); }
+function openTextModal(title, placeholder, onSubmit) {
+  const old = document.getElementById('textModalOverlay'); if (old) old.remove();
+  const overlay = el('div', { class: 'modal-overlay', id: 'textModalOverlay' });
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  const box = el('div', { class: 'modal-box' });
+  const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);' });
+  header.appendChild(el('div', { style: 'font-weight:800;color:var(--gold);' }, title));
+  const closeBtn = el('button', { class: 'btn', style: 'font-size:12px;' }, '✕');
+  closeBtn.onclick = close; header.appendChild(closeBtn); box.appendChild(header);
+  const body = el('div', { class: 'panel-body' });
+  body.appendChild(el('div', { class: 'small', style: 'margin-bottom:4px;' }, 'Description'));
+  const ta = el('textarea', { rows: '4', placeholder, style: 'width:100%;box-sizing:border-box;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:8px;font-size:13px;margin-bottom:10px;resize:vertical;' });
+  body.appendChild(ta);
+  const ok = el('button', { class: 'btn success', style: 'font-size:12px;width:100%;opacity:.4;' }, '+ Ajouter');
+  ok.disabled = true;
+  ta.oninput = () => { const v = !!ta.value.trim(); ok.disabled = !v; ok.style.opacity = v ? '1' : '.4'; };
+  ok.onclick = () => { const v = ta.value; close(); onSubmit(v); };
+  body.appendChild(ok); box.appendChild(body); overlay.appendChild(box); document.body.appendChild(overlay);
+  ta.focus();
+}
+function renderTextList(tableId, btnId, key, title, emptyText, modalTitle, placeholder) {
+  const table = document.getElementById(tableId);
+  table.innerHTML = '';
+  if (!state[key].length) {
+    const row = el('tr', {});
+    row.appendChild(el('td', { colspan: '2', class: 'hint', style: 'padding:10px 8px;' }, emptyText));
+    table.appendChild(row);
+  }
+  state[key].forEach((e) => {
+    const row = el('tr', {});
+    const td = el('td', { style: 'padding:8px;border-bottom:1px solid #0f0f20;vertical-align:top;white-space:pre-wrap;' });
+    td.textContent = e.description;
+    row.appendChild(td);
+    const delCell = el('td', { style: 'padding:8px;border-bottom:1px solid #0f0f20;vertical-align:top;width:28px;' });
+    const delBtn = el('button', { class: 'btn danger', style: 'font-size:11px;padding:4px 7px;' }, '✕');
+    delBtn.onclick = () => deleteTextEntry(key, e.id);
+    delCell.appendChild(delBtn); row.appendChild(delCell);
+    table.appendChild(row);
+  });
+  document.getElementById(btnId).onclick = () => openTextModal(modalTitle, placeholder, (v) => addTextEntry(key, v));
+}
+function renderAlienations() {
+  document.getElementById('alienCountTitle').textContent = `(${state.alienations.length})`;
+  renderTextList('alienationsTable', 'addAlienationBtn', 'alienations', 'DESCRIPTION', 'Aucune aliénation pour l\'instant.', 'Nouvelle aliénation', 'Décrire l\'aliénation…');
+  renderTextList('crithemisTable', 'addCrithemisBtn', 'crithemis', 'CRITHÉMIS', 'Aucun effet pour l\'instant.', 'Nouvel effet Crithémis', 'Décrire l\'effet qui affecte la personne…');
+}
+function render() { renderTopbar(); renderDetail(); renderSvg(); renderImprovements(); renderAlienations(); renderAcquired(); renderProjects(); renderDeleteProjectConfirmModal(); }
 function buildSaveData() {
-  return { mode: state.mode, budget: state.budget, acquired: state.acquired, lpBought: state.lpBought, specializations: state.specializations, projects: state.projects, improvements: state.improvements };
+  return { mode: state.mode, budget: state.budget, acquired: state.acquired, lpBought: state.lpBought, specializations: state.specializations, projects: state.projects, improvements: state.improvements, lpBonus: state.lpBonus, wounds: state.wounds, alienations: state.alienations, crithemis: state.crithemis };
 }
 function saveState() {
   const blob = new Blob([JSON.stringify(buildSaveData(), null, 2)], { type: 'application/json' });
@@ -1614,6 +1702,12 @@ function applyState(d) {
     if (!Array.isArray(p.offSchemaItems)) p.offSchemaItems = [];
   });
   state.improvements = Array.isArray(d.improvements) ? d.improvements : [];
+  state.lpBonus = Math.max(0, Math.floor(+d.lpBonus) || 0);
+  state.wounds = { cur: +(d.wounds && d.wounds.cur) || 0, max: (d.wounds && typeof d.wounds.max === 'number') ? d.wounds.max : 3 };
+  clampWounds();
+  const cleanList = (a) => Array.isArray(a) ? a.filter((e) => e && typeof e.description === 'string').map((e, i) => ({ id: e.id || ('imp_' + i + Date.now().toString(36)), description: e.description })) : [];
+  state.alienations = cleanList(d.alienations);
+  state.crithemis = cleanList(d.crithemis);
   state.selected = null; state.selectedProject = null; render();
 }
 function loadState(file) {
@@ -1824,12 +1918,15 @@ document.getElementById('modePlanning').onclick = () => setMode('planning');
 document.getElementById('modeBudget').onclick = () => setMode('budget');
 document.getElementById('budgetInput').addEventListener('input', (e) => { state.budget = Math.max(0, +e.target.value || 0); render(); });
 document.getElementById('saveBtn').onclick = saveState;
+document.getElementById('woundMax').addEventListener('change', (e) => { state.wounds.max = +e.target.value; clampWounds(); render(); });
+document.getElementById('woundCur').addEventListener('change', (e) => { state.wounds.cur = +e.target.value; clampWounds(); render(); });
+document.getElementById('lpManual').addEventListener('change', (e) => { state.lpBonus = Math.max(0, Math.floor(+e.target.value) || 0); render(); });
 document.getElementById('ghSaveBtn').onclick = openGhSave;
 document.getElementById('ghLoadBtn').onclick = openGhLoad;
 document.getElementById('ghCfgBtn').onclick = () => openGhConfig();
 document.getElementById('loadBtn').onclick = () => document.getElementById('fileInput').click();
 document.getElementById('fileInput').addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) loadState(file); e.target.value = ''; });
-document.getElementById('resetBtn').onclick = () => { state.acquired = {}; state.lpBought = {}; state.specializations = {}; state.projects = []; state.improvements = []; state.selected = null; state.selectedProject = null; render(); };
+document.getElementById('resetBtn').onclick = () => { state.acquired = {}; state.lpBought = {}; state.specializations = {}; state.projects = []; state.improvements = []; state.lpBonus = 0; state.wounds = { cur: 0, max: 3 }; state.alienations = []; state.crithemis = []; state.selected = null; state.selectedProject = null; render(); };
 document.getElementById('magicsHeader').onclick = () => toggleSection('magicsBody', 'magicsChevron');
 document.getElementById('projectsHeader').onclick = () => toggleSection('projectsBody', 'projectsChevron');
 function toggleSection(bodyId, chevronId) {
