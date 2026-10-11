@@ -1,0 +1,142 @@
+{
+  "mode": "planning",
+  "budget": 50,
+  "acquired": {
+    "magic": 1,
+    "elemental": 1,
+    "sky": 1,
+    "lightning": 5,
+    "arcane": 3,
+    "metal": 1,
+    "earth": 1
+  },
+  "lpBought": {},
+  "specializations": {},
+  "projects": [
+    {
+      "id": "proj_mtz14m97prk77",
+      "name": "Myrsky",
+      "type": "familier",
+      "magicId": "lightning",
+      "description": "",
+      "path": [
+        "start",
+        "c1",
+        "b2l"
+      ],
+      "nodeData": {
+        "c1": {
+          "C": {
+            "category": "bonus",
+            "value": 20,
+            "condition": "dance rituel + | -"
+          }
+        },
+        "b2l": {
+          "B": {
+            "stat1": "Brutality",
+            "stat2": "Swiftness"
+          }
+        }
+      },
+      "altForm": null,
+      "familierStats": [
+        "Brutality",
+        "Swiftness",
+        "Cunning"
+      ],
+      "offSchema": false,
+      "offSchemaMax": 0,
+      "offSchemaItems": []
+    },
+    {
+      "id": "proj_mtz152ctcfm20",
+      "name": "armure de paladin de Stonehand",
+      "type": "artefact",
+      "magicId": "metal",
+      "description": "",
+      "path": [
+        "start",
+        "b1",
+        "b2r",
+        "c3r"
+      ],
+      "nodeData": {
+        "b1": {
+          "B": {}
+        },
+        "b2r": {
+          "B": {}
+        },
+        "c3r": {
+          "C": {}
+        },
+        "be4": {
+          "B": {},
+          "E": {}
+        }
+      },
+      "altForm": null,
+      "offSchema": false,
+      "offSchemaMax": 0,
+      "offSchemaItems": []
+    }
+  ],
+  "improvements": [
+    {
+      "id": "impr_mv46s0hpctzva",
+      "description": "Plus jeune, Victor a pris un coup de jus. Cette expérience la poussait à penser différemment, à devenir plus curieux sur les pourquoi et commence de ce qui l’entour, mais aussi à réfléchir et à penser à de futur test",
+      "stats": [
+        "Curiosity",
+        "Cunning"
+      ]
+    },
+    {
+      "id": "impr_mv46sw2vsxcc2",
+      "description": "Quand Alexander commença à s'ouvrir, victor voulu en apprendre plus sur son autre fois timid frère et passer du temps avec lui, il aida aussi ses parents à lui préparer des surprise secrète quand il gagnait des tournoi ou pour son anniversaire",
+      "stats": [
+        "Curiosity",
+        "Cunning"
+      ]
+    },
+    {
+      "id": "impr_mv46tabpddod6",
+      "description": "Après la disparition de Camille et la blessure de Alexander, Victor essaie du mieux qu’il peut afin d’aider sa famille et d’être à leur côté. Même si ça rend ses études plus ardu et le pousse à avoir une meilleur gestion de son temps pour ne pas être submergé",
+      "stats": [
+        "Cunning",
+        "Empathy"
+      ]
+    },
+    {
+      "id": "impr_mv46tr3h88pbr",
+      "description": "Pendant le combat contre la succube Victor avait besoin d’être précis pour toucher seulement la succubes tout en ne réduisant pas l’intensité de la foudre pour la blesser",
+      "stats": [
+        "Brutality",
+        "Cunning"
+      ]
+    },
+    {
+      "id": "impr_mv46u48xa7ztz",
+      "description": "Les dernière semaines on était tellement riche en crise à gérer que victor a dû prendre des décisions bien plus vite et aussi utiliser des méthodes plus brutale",
+      "stats": [
+        "Brutality",
+        "Swiftness"
+      ]
+    },
+    {
+      "id": "impr_mv46um32cgoqs",
+      "description": "Le combat en était partiellement aveugle contre les gobelins à entraîner victor a tout donnée en un seul coup mais aussi à faire des sorts désespérés pour sauver ses amis ou juste sois mêmes",
+      "stats": [
+        "Brutality",
+        "Swiftness"
+      ]
+    }
+  ],
+  "lpBonus": 7,
+  "wounds": {
+    "cur": 0,
+    "max": 3
+  },
+  "alienations": [],
+  "crithemis": []
+}
