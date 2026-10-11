@@ -166,29 +166,46 @@
     <section class="panel">
       <div class="panel-header">CERCLES ARCANIQUES</div>
       <div class="svg-wrap"><svg id="arcaneSvg" viewBox="0 0 980 980" aria-label="Carte des magies"></svg></div>
-      <div class="panel-header" style="border-top:1px solid var(--line);">HISTORIQUE</div>
-      <div class="panel-body" style="display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-        <div style="flex:1 1 75%; min-width:260px;">
-          <table id="improvementsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
-          <button id="addImprovementBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter une amélioration</button>
+      <div style="display:flex; align-items:flex-start; flex-wrap:wrap; border-top:1px solid var(--line);">
+        <div style="flex:1 1 60%; min-width:260px;">
+          <div class="panel-header collapsible-header" id="historyHeader">
+            <span>HISTORIQUE</span><span class="chevron" id="historyChevron">▾</span>
+          </div>
+          <div id="historyBody">
+            <div class="panel-body">
+              <table id="improvementsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+              <button id="addImprovementBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter une amélioration</button>
+            </div>
+          </div>
         </div>
-        <div style="flex:1 1 20%; min-width:150px;">
-          <table id="statsTotalsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+        <div style="flex:1 1 30%; min-width:190px;">
+          <div class="panel-header collapsible-header" id="statsHeader">
+            <span>STATS</span><span class="chevron" id="statsChevron">▾</span>
+          </div>
+          <div id="statsBody">
+            <div class="panel-body">
+              <table id="statsTotalsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
       <section class="panel" style="flex:1 1 240px; min-width:0;">
-        <div class="panel-header">ALIÉNATIONS <span id="alienCountTitle" style="color:var(--gold);">(0)</span></div>
-        <div class="panel-body">
+        <div class="panel-header collapsible-header" id="alienHeader">
+          <span>ALIÉNATIONS <span id="alienCountTitle" style="color:var(--gold);">(0)</span></span><span class="chevron" id="alienChevron">▾</span>
+        </div>
+        <div class="panel-body" id="alienBody">
           <table id="alienationsTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
           <button id="addAlienationBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter une aliénation</button>
         </div>
       </section>
       <section class="panel" style="flex:1 1 240px; min-width:0;">
-        <div class="panel-header">CRITHÉMIS</div>
-        <div class="panel-body">
+        <div class="panel-header collapsible-header" id="crithHeader">
+          <span>CRITHÉMIS</span><span class="chevron" id="crithChevron">▾</span>
+        </div>
+        <div class="panel-body" id="crithBody">
           <table id="crithemisTable" style="width:100%; border-collapse:collapse; font-size:13px;"></table>
           <button id="addCrithemisBtn" class="btn success" style="font-size:12px;width:100%;margin-top:10px;">+ Ajouter un effet</button>
         </div>
@@ -1929,6 +1946,10 @@ document.getElementById('fileInput').addEventListener('change', (e) => { const f
 document.getElementById('resetBtn').onclick = () => { state.acquired = {}; state.lpBought = {}; state.specializations = {}; state.projects = []; state.improvements = []; state.lpBonus = 0; state.wounds = { cur: 0, max: 3 }; state.alienations = []; state.crithemis = []; state.selected = null; state.selectedProject = null; render(); };
 document.getElementById('magicsHeader').onclick = () => toggleSection('magicsBody', 'magicsChevron');
 document.getElementById('projectsHeader').onclick = () => toggleSection('projectsBody', 'projectsChevron');
+document.getElementById('historyHeader').onclick = () => toggleSection('historyBody', 'historyChevron');
+document.getElementById('statsHeader').onclick = () => toggleSection('statsBody', 'statsChevron');
+document.getElementById('alienHeader').onclick = () => toggleSection('alienBody', 'alienChevron');
+document.getElementById('crithHeader').onclick = () => toggleSection('crithBody', 'crithChevron');
 function toggleSection(bodyId, chevronId) {
   const body = document.getElementById(bodyId);
   const collapsed = body.style.display === 'none';
